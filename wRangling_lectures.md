@@ -1,19 +1,8 @@
----
-title: "ECL290 w**R**angling Notebook"
-author: "Ryan Peek"
-date: "Updated: `r format(Sys.Date())`"
-output:
-  html_document:
-    highlight: pygments
-    theme: yeti
-    keep_md: true
----
+# ECL290 w**R**angling Notebook
+Ryan Peek  
+Updated: `r format(Sys.Date())`  
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
-knitr::opts_knit$set(root.dir = normalizePath("../"))
-htmltools::tagList(rmarkdown::html_dependency_font_awesome())
-```
+
 
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. For info on just markdown and Github, try this site <https://guides.github.com/features/mastering-markdown/>.
@@ -46,6 +35,6 @@ RStudio has a seemingly infinite number of combinations and settings, don't let 
 
 You can customize these to your heart's content. Many options, styles, etc. What's really neat is you can create slide presentations, apps, reports, even books, using RMarkdown documents. The only thing that gets changed around (for the most part) is the `yaml` header at the top (the section delineated with a `---` at the start and end). So once you learn some basics, you can do a lot!
 
- > See here for more info: (http://rmarkdown.rstudio.com/index.html)
+ > See here for more info: _(http://rmarkdown.rstudio.com/index.html)_
 
   
