@@ -1,0 +1,71 @@
+---
+title: "Tidy Text"
+author: "Ryan Peek"
+date: "Updated: `r format(Sys.Date())`"
+always_allow_html: yes
+output: github_document
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+#knitr::opts_knit$set(root.dir = normalizePath("../"))
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+```
+
+## Using Tidy Text
+
+Let's learn about doing text mining...check out here: http://tidytextmining.com/tidytext.html for more details.
+
+```{r get text, echo=TRUE}
+library(dplyr, warn.conflicts = F)
+library(tidytext)
+
+text <- c("Because I could not stop for Death -",
+          "He kindly stopped for me -",
+          "The Carriage held but just Ourselves -",
+          "and Immortality")
+
+text_df <- data_frame(line = 1:4, text = text)
+
+text_df %>%
+  unnest_tokens(word, text)
+
+```
+
+To play around with something, I took Martin Luther King Jr.'s "*I Have A Dream*" and we will see what the most commonly used words are.
+
+```{r mlk, echo=TRUE}
+library(readr)
+library(ggplot2)
+
+mlk<-read_lines("data/I_have_a_dream_1963.md")
+
+mlk_text <- data_frame(line = 1:length(mlk), text = mlk)
+
+# filter blank lines (even rows)
+mlk_text <- mlk_text %>% filter(line %% 2 == 1) %>% 
+  mutate(line = 1:nrow(.)) # renumber lines
+
+# Make single word vector
+mlk_text<- mlk_text %>%
+  unnest_tokens(word, text)
+
+# Now join with stop words
+tidy_mlk <- mlk_text %>%
+  anti_join(stop_words)
+
+tidy_mlk %>%
+  count(word, sort = TRUE) 
+
+tidy_mlk %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 2) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_bar(stat = "identity", fill="forestgreen") +
+  xlab(NULL) +
+  coord_flip()
+
+```
+
