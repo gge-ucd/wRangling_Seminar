@@ -1,9 +1,9 @@
-# This is a test script
 
+# WEEK 2 ------------------------------------------------------------------
+
+# Use Ctrl or Command + Shift + R to add section breaks
 
 # Learning Vectors --------------------------------------------------------
-
-1 + 1
 
 # Make a vector of names
 firstnames <- c("Ryan", "Sue", "John", "Rachel")
