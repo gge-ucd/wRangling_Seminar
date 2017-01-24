@@ -25,7 +25,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
  - And finally, for instant in-class feedback, please use this Google Survey Form whenever you see a <i class="fa fa-bolt fa-3x" aria-hidden="true"></i>:
     - https://gge-ucd.github.io/wRangling-Ecology/in-class-feedback/
 
-# Week 1
+# WEEK 1
 
 ## Using Github & RStudio
 
@@ -48,12 +48,27 @@ RStudio has a seemingly infinite number of combinations and settings, don't let 
 You can customize these to your heart's content. Many options, styles, etc. What's really neat is you can create slide presentations, apps, reports, even books, using RMarkdown documents. The only thing that gets changed around (for the most part) is the `yaml` header at the top (the section delineated with a `---` at the start and end). So once you learn some basics, you can do a lot!
 
  > See here for more info: (http://rmarkdown.rstudio.com/index.html)
+ 
+The lines at the top of this *Rmd* file are setting the global code chunk options. If you want, you could load packages here, but probably not advised because the setup chunk won't show up in the document (it's hidden using `include=FALSE`).
+
+```{r eval=FALSE, echo=TRUE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+
+```
+
+The second and third lines (`knitr::opts_knit` and `htmltools`) are doing the following.
+
+ - `normalizePath` is a way to tell the Rmarkdown `knitr` to look for files *up* one directory, assuming your Rmd is saved in a documents folder inside the root directory.
+ - `htmltools` is just a fun tool to add little graphic icons (like this <i class="fa fa-fire" aria-hidden="true"></i>).
 
 # WEEK 2:
 
 ## Using lists or vectors of characters
 
-```{r, echo=TRUE}
+```{r data objects, echo=TRUE}
 
 # Entering Data Objects ---------------------------------------------------
 
@@ -184,7 +199,7 @@ mean(sample_num, na.rm = TRUE)
 ```
 
 
-```{r}
+```{r vectors, echo=TRUE}
 
 
 # Make a vector of names
@@ -316,7 +331,151 @@ Many options for plotting parameters (changing colors, shapes, etc). Really sky 
  - [Colors](http://research.stowers-institute.org/efg/R/Color/Chart/)
  - [Color palettes](http://colorbrewer2.org/)
 
+# WEEK 3
+
+A new and very nicely put together R/Stats Book worth checking out is here:
+
+ - https://ismayc.github.io/moderndiver-book/
  
+What's great is it teaches R and how to implement R from a modeling framework, demonstrates a powerful pipeline that we all should follow. It's based in part using Hadley Wickam's R book, and the "tidyverse" of packages. We'll talk more about this next week. 
+
+```{r moderndiver, echo=F, eval=F}
+
+needed_pkgs <- c("nycflights13", "dplyr", "ggplot2", "knitr", 
+  "okcupiddata", "dygraphs", "rmarkdown", "mosaic", "ggplot2movies")
+
+new.pkgs <- needed_pkgs[!(needed_pkgs %in% installed.packages())]
+
+if(length(new.pkgs)) {
+  install.packages(new.pkgs, repos = "http://cran.rstudio.com")
+}
+
+```
+
+## Data Classes
+
+Let's review the data classes we discussed previously. Remember the heirarchy of stuff in R:
+
+ - **PACKAGES** (which are libraries of functions)
+ - **_Libraries_** (collections of functions that do things)
+ - *Functions* (something that takes *arguments* which use data/info)
+    - DATATYPES:
+        - *numeric*
+        - *integer*
+        - *factor*
+        - *character*
+        - *dates*
+        - *logical/boolean (TRUE/FALSE)*
+
+```{r data classes, echo=T, eval=T}
+
+# talking data classes
+
+mixed_vector <- c(2, 4.56, TRUE)
+animals <- c("cat","dog", "parrot", "frog")
+animals <- as.factor(animals)
+
+(medicine <- c("control", "a", "b", "c", "d"))
+medicine <- as.factor(medicine) # way to convert to a given 
+
+
+(medicine <- factor(x = c("control", "a", "b", "c", "d"), levels = c("a", "b", "c", "d", "control")))
+
+```
+
+## Working With `dplyr`
+
+Make sure you have the package installed, then load it using the `library()` function.
+
+```{r echo=TRUE, eval=FALSE}
+install.packages("dplyr")
+library(dplyr)
+
+dplyr::select() # run a single function without loading a library, also helps if there's conflicting functions (i.e, same function name)
+
+```
+
+### 5 major verbs in dplyr: 
+
+ - **`select`**
+ - **`filter`**
+ - **`mutate`**
+ - **`group_by`**
+ - **`summarize`**
+
+#### Working with Select
+
+**Challenge**:
+
+Read in the data using `read.csv`, see how many columns, and what types of data. Name this object as "`shrubs`".
+
+```{r select, eval=TRUE, echo=TRUE}
+
+library(dplyr, warn.conflicts = F)
+## notice you may need to add the leading `../`
+#shrubs <- read.csv("../data/shrub-volume-experiment.csv")
+shrubs <- read.csv("data/shrub-volume-experiment.csv")
+
+str(shrubs)
+dim(shrubs)
+summary(shrubs)
+head(shrubs)
+tail(shrubs)
+ncol(shrubs)
+nrow(shrubs)
+
+names(shrubs)
+
+shrubs$site
+shrubs[,1]
+
+# using dplyr::select
+
+select(shrubs, site, length)
+select(shrubs, 1:3)
+select(shrubs, site, ends_with("h"))
+select(shrubs, site, contains("d"))
+
+data_to_use <- select(shrubs, site, experiment, height)
+write.csv(data_to_use, file = "data_output/shrub_heights.csv", row.names = FALSE)
+
+```
+
+### Using `filter`
+
+```{r filter, echo=TRUE, eval=TRUE}
+
+filter(shrubs, height > 3)
+filter(shrubs, width >= 2 & height > 3) # AND, must meet both conditions
+
+# using OR
+filter(shrubs, width >=2 | height > 3) # OR, can match either, but not necessarily both
+
+```
+
+### Pipes **`%>%`**
+
+`dplyr` uses a package called [`magrittr`](https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html) which uses pipes.
+
+```{r pipes, echo=TRUE, eval=TRUE}
+
+select(shrubs, site:width) %>% 
+  filter(length > 3, width > 2) %>% 
+  write.csv("data_output/demo_pipe.csv", row.names=FALSE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

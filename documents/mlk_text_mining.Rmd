@@ -2,9 +2,11 @@
 title: "Taking Text and Analyzing It"
 author: "Ryan Peek"
 date: "Updated: `r format(Sys.Date())`"
-always_allow_html: yes
-output: github_document
-  
+output: 
+  html_document:
+    highlight: pygments
+    theme: yeti
+    keep_md: true
 ---
 
 ```{r setup, include=FALSE}

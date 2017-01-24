@@ -14,7 +14,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
  - And finally, for instant in-class feedback, please use this Google Survey Form whenever you see a <i class="fa fa-bolt fa-3x" aria-hidden="true"></i>:
     - https://gge-ucd.github.io/wRangling-Ecology/in-class-feedback/
 
-# Week 1
+# WEEK 1
 
 ## Using Github & RStudio
 
@@ -37,6 +37,20 @@ RStudio has a seemingly infinite number of combinations and settings, don't let 
 You can customize these to your heart's content. Many options, styles, etc. What's really neat is you can create slide presentations, apps, reports, even books, using RMarkdown documents. The only thing that gets changed around (for the most part) is the `yaml` header at the top (the section delineated with a `---` at the start and end). So once you learn some basics, you can do a lot!
 
  > See here for more info: (http://rmarkdown.rstudio.com/index.html)
+ 
+The lines at the top of this *Rmd* file are setting the global code chunk options. If you want, you could load packages here, but probably not advised because the setup chunk won't show up in the document (it's hidden using `include=FALSE`).
+
+
+```r
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+```
+
+The second and third lines (`knitr::opts_knit` and `htmltools`) are doing the following.
+
+ - `normalizePath` is a way to tell the Rmarkdown `knitr` to look for files *up* one directory, assuming your Rmd is saved in a documents folder inside the root directory.
+ - `htmltools` is just a fun tool to add little graphic icons (like this <i class="fa fa-fire" aria-hidden="true"></i>).
 
 # WEEK 2:
 
@@ -370,32 +384,76 @@ mean(sample_num, na.rm = TRUE)
 
 
 
+```r
+# Make a vector of names
+firstnames <- c("Ryan", "Sue", "John", "Rachel")
+firstnames
+```
+
 ```
 ## [1] "Ryan"   "Sue"    "John"   "Rachel"
+```
+
+```r
+str(firstnames)  # tells you structure of data
 ```
 
 ```
 ##  chr [1:4] "Ryan" "Sue" "John" "Rachel"
 ```
 
+```r
+# make a vector of animals
+animals <- c('cat', "dog", 'rat', 'mouse')
+animals
+```
+
 ```
 ## [1] "cat"   "dog"   "rat"   "mouse"
+```
+
+```r
+# combine vectors
+biglist <- c(firstnames, animals)
+
+biglist
 ```
 
 ```
 ## [1] "Ryan"   "Sue"    "John"   "Rachel" "cat"    "dog"    "rat"    "mouse"
 ```
 
+```r
+# Make a vector of numbers
+
+lista <- c(1, 2, 5, 8, 11, NA, 15)
+lista
+```
+
 ```
 ## [1]  1  2  5  8 11 NA 15
+```
+
+```r
+str(lista)
 ```
 
 ```
 ##  num [1:7] 1 2 5 8 11 NA 15
 ```
 
+```r
+# find out length of vector
+length(lista)
+```
+
 ```
 ## [1] 7
+```
+
+```r
+# summarizes data based on type
+summary(lista)
 ```
 
 ```
@@ -403,41 +461,94 @@ mean(sample_num, na.rm = TRUE)
 ##    1.00    2.75    6.50    7.00   10.25   15.00       1
 ```
 
+```r
+summary(biglist)
+```
+
 ```
 ##    Length     Class      Mode 
 ##         8 character character
+```
+
+```r
+# A function
+mean(x=lista, na.rm = TRUE) # remember you can use tab to autocomplete
 ```
 
 ```
 ## [1] 7
 ```
 
+```r
+# Working with NAs --------------------------------------------------------
+
+is.na(lista) #TRUE/FALSE list of all NAs
+```
+
 ```
 ## [1] FALSE FALSE FALSE FALSE FALSE  TRUE FALSE
+```
+
+```r
+lista[6] # accessing 6 item in the vector
 ```
 
 ```
 ## [1] NA
 ```
 
+```r
+lista_noNA <- lista[!is.na(lista)]
+
+length(lista_noNA)
+```
+
 ```
 ## [1] 6
+```
+
+```r
+lista[6] <- 0
+lista
 ```
 
 ```
 ## [1]  1  2  5  8 11  0 15
 ```
 
+```r
+rm(lista_noNA) # remove this object from your environment
+
+# Sequence ---------------------------------------------------------------
+
+seq(1,10, by=1)
+```
+
 ```
 ##  [1]  1  2  3  4  5  6  7  8  9 10
+```
+
+```r
+seq(5,10, length.out = 3) # it calculates values of breaks/intervals for you
 ```
 
 ```
 ## [1]  5.0  7.5 10.0
 ```
 
+```r
+seq(1, 8, by=3)
+```
+
 ```
 ## [1] 1 4 7
+```
+
+```r
+oneK<-seq(1000, 34000, by=1000)
+
+# can use this to subset to the 1000, 2000 ... rows
+# DATA[oneK,] 
 ```
 
 A few notes, remember to assign objects (these can be lists, vectors, dataframe, functions) to your environment using `<-`.
@@ -671,7 +782,358 @@ Many options for plotting parameters (changing colors, shapes, etc). Really sky 
  - [Colors](http://research.stowers-institute.org/efg/R/Color/Chart/)
  - [Color palettes](http://colorbrewer2.org/)
 
+# WEEK 3
+
+A new and very nicely put together R/Stats Book worth checking out is here:
+
+ - https://ismayc.github.io/moderndiver-book/
  
+What's great is it teaches R and how to implement R from a modeling framework, demonstrates a powerful pipeline that we all should follow. It's based in part using Hadley Wickam's R book, and the "tidyverse" of packages. We'll talk more about this next week. 
+
+
+
+## Data Classes
+
+Let's review the data classes we discussed previously. Remember the heirarchy of stuff in R:
+
+ - **PACKAGES** (which are libraries of functions)
+ - **_Libraries_** (collections of functions that do things)
+ - *Functions* (something that takes *arguments* which use data/info)
+    - DATATYPES:
+        - *numeric*
+        - *integer*
+        - *factor*
+        - *character*
+        - *dates*
+        - *logical/boolean (TRUE/FALSE)*
+
+
+```r
+# talking data classes
+
+mixed_vector <- c(2, 4.56, TRUE)
+animals <- c("cat","dog", "parrot", "frog")
+animals <- as.factor(animals)
+
+(medicine <- c("control", "a", "b", "c", "d"))
+```
+
+```
+## [1] "control" "a"       "b"       "c"       "d"
+```
+
+```r
+medicine <- as.factor(medicine) # way to convert to a given 
+
+
+(medicine <- factor(x = c("control", "a", "b", "c", "d"), levels = c("a", "b", "c", "d", "control")))
+```
+
+```
+## [1] control a       b       c       d      
+## Levels: a b c d control
+```
+
+## Working With `dplyr`
+
+Make sure you have the package installed, then load it using the `library()` function.
+
+
+```r
+install.packages("dplyr")
+library(dplyr)
+
+dplyr::select() # run a single function without loading a library, also helps if there's conflicting functions (i.e, same function name)
+```
+
+### 5 major verbs in dplyr: 
+
+ - **`select`**
+ - **`filter`**
+ - **`mutate`**
+ - **`group_by`**
+ - **`summarize`**
+
+#### Working with Select
+
+**Challenge**:
+
+Read in the data using `read.csv`, see how many columns, and what types of data. Name this object as "`shrubs`".
+
+
+```r
+library(dplyr, warn.conflicts = F)
+## notice you may need to add the leading `../`
+#shrubs <- read.csv("../data/shrub-volume-experiment.csv")
+shrubs <- read.csv("data/shrub-volume-experiment.csv")
+
+str(shrubs)
+```
+
+```
+## 'data.frame':	12 obs. of  5 variables:
+##  $ site      : int  1 1 1 2 2 2 3 3 3 4 ...
+##  $ experiment: int  1 2 3 1 2 3 1 2 3 1 ...
+##  $ length    : num  2.2 2.1 2.7 3 3.1 2.5 1.9 1.1 3.5 2.9 ...
+##  $ width     : num  1.3 2.2 1.5 4.5 3.1 2.8 1.8 0.5 2 2.7 ...
+##  $ height    : num  9.6 7.6 2.2 1.5 4 3 4.5 2.3 7.5 3.2 ...
+```
+
+```r
+dim(shrubs)
+```
+
+```
+## [1] 12  5
+```
+
+```r
+summary(shrubs)
+```
+
+```
+##       site        experiment     length          width      
+##  Min.   :1.00   Min.   :1    Min.   :1.100   Min.   :0.500  
+##  1st Qu.:1.75   1st Qu.:1    1st Qu.:2.050   1st Qu.:1.725  
+##  Median :2.50   Median :2    Median :2.600   Median :2.100  
+##  Mean   :2.50   Mean   :2    Mean   :2.558   Mean   :2.417  
+##  3rd Qu.:3.25   3rd Qu.:3    3rd Qu.:3.025   3rd Qu.:2.875  
+##  Max.   :4.00   Max.   :3    Max.   :4.500   Max.   :4.800  
+##      height    
+##  Min.   :1.50  
+##  1st Qu.:2.60  
+##  Median :3.60  
+##  Mean   :4.55  
+##  3rd Qu.:6.75  
+##  Max.   :9.60
+```
+
+```r
+head(shrubs)
+```
+
+```
+##   site experiment length width height
+## 1    1          1    2.2   1.3    9.6
+## 2    1          2    2.1   2.2    7.6
+## 3    1          3    2.7   1.5    2.2
+## 4    2          1    3.0   4.5    1.5
+## 5    2          2    3.1   3.1    4.0
+## 6    2          3    2.5   2.8    3.0
+```
+
+```r
+tail(shrubs)
+```
+
+```
+##    site experiment length width height
+## 7     3          1    1.9   1.8    4.5
+## 8     3          2    1.1   0.5    2.3
+## 9     3          3    3.5   2.0    7.5
+## 10    4          1    2.9   2.7    3.2
+## 11    4          2    4.5   4.8    6.5
+## 12    4          3    1.2   1.8    2.7
+```
+
+```r
+ncol(shrubs)
+```
+
+```
+## [1] 5
+```
+
+```r
+nrow(shrubs)
+```
+
+```
+## [1] 12
+```
+
+```r
+names(shrubs)
+```
+
+```
+## [1] "site"       "experiment" "length"     "width"      "height"
+```
+
+```r
+shrubs$site
+```
+
+```
+##  [1] 1 1 1 2 2 2 3 3 3 4 4 4
+```
+
+```r
+shrubs[,1]
+```
+
+```
+##  [1] 1 1 1 2 2 2 3 3 3 4 4 4
+```
+
+```r
+# using dplyr::select
+
+select(shrubs, site, length)
+```
+
+```
+##    site length
+## 1     1    2.2
+## 2     1    2.1
+## 3     1    2.7
+## 4     2    3.0
+## 5     2    3.1
+## 6     2    2.5
+## 7     3    1.9
+## 8     3    1.1
+## 9     3    3.5
+## 10    4    2.9
+## 11    4    4.5
+## 12    4    1.2
+```
+
+```r
+select(shrubs, 1:3)
+```
+
+```
+##    site experiment length
+## 1     1          1    2.2
+## 2     1          2    2.1
+## 3     1          3    2.7
+## 4     2          1    3.0
+## 5     2          2    3.1
+## 6     2          3    2.5
+## 7     3          1    1.9
+## 8     3          2    1.1
+## 9     3          3    3.5
+## 10    4          1    2.9
+## 11    4          2    4.5
+## 12    4          3    1.2
+```
+
+```r
+select(shrubs, site, ends_with("h"))
+```
+
+```
+##    site length width
+## 1     1    2.2   1.3
+## 2     1    2.1   2.2
+## 3     1    2.7   1.5
+## 4     2    3.0   4.5
+## 5     2    3.1   3.1
+## 6     2    2.5   2.8
+## 7     3    1.9   1.8
+## 8     3    1.1   0.5
+## 9     3    3.5   2.0
+## 10    4    2.9   2.7
+## 11    4    4.5   4.8
+## 12    4    1.2   1.8
+```
+
+```r
+select(shrubs, site, contains("d"))
+```
+
+```
+##    site width
+## 1     1   1.3
+## 2     1   2.2
+## 3     1   1.5
+## 4     2   4.5
+## 5     2   3.1
+## 6     2   2.8
+## 7     3   1.8
+## 8     3   0.5
+## 9     3   2.0
+## 10    4   2.7
+## 11    4   4.8
+## 12    4   1.8
+```
+
+```r
+data_to_use <- select(shrubs, site, experiment, height)
+write.csv(data_to_use, file = "data_output/shrub_heights.csv", row.names = FALSE)
+```
+
+### Using `filter`
+
+
+```r
+filter(shrubs, height > 3)
+```
+
+```
+##   site experiment length width height
+## 1    1          1    2.2   1.3    9.6
+## 2    1          2    2.1   2.2    7.6
+## 3    2          2    3.1   3.1    4.0
+## 4    3          1    1.9   1.8    4.5
+## 5    3          3    3.5   2.0    7.5
+## 6    4          1    2.9   2.7    3.2
+## 7    4          2    4.5   4.8    6.5
+```
+
+```r
+filter(shrubs, width >= 2 & height > 3) # AND, must meet both conditions
+```
+
+```
+##   site experiment length width height
+## 1    1          2    2.1   2.2    7.6
+## 2    2          2    3.1   3.1    4.0
+## 3    3          3    3.5   2.0    7.5
+## 4    4          1    2.9   2.7    3.2
+## 5    4          2    4.5   4.8    6.5
+```
+
+```r
+# using OR
+filter(shrubs, width >=2 | height > 3) # OR, can match either, but not necessarily both
+```
+
+```
+##   site experiment length width height
+## 1    1          1    2.2   1.3    9.6
+## 2    1          2    2.1   2.2    7.6
+## 3    2          1    3.0   4.5    1.5
+## 4    2          2    3.1   3.1    4.0
+## 5    2          3    2.5   2.8    3.0
+## 6    3          1    1.9   1.8    4.5
+## 7    3          3    3.5   2.0    7.5
+## 8    4          1    2.9   2.7    3.2
+## 9    4          2    4.5   4.8    6.5
+```
+
+### Pipes **`%>%`**
+
+`dplyr` uses a package called [`magrittr`](https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html) which uses pipes.
+
+
+```r
+select(shrubs, site:width) %>% 
+  filter(length > 3, width > 2) %>% 
+  write.csv("data_output/demo_pipe.csv", row.names=FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
