@@ -331,26 +331,10 @@ Many options for plotting parameters (changing colors, shapes, etc). Really sky 
  - [Colors](http://research.stowers-institute.org/efg/R/Color/Chart/)
  - [Color palettes](http://colorbrewer2.org/)
 
+
 # WEEK 3
 
-A new and very nicely put together R/Stats Book worth checking out is here:
-
- - https://ismayc.github.io/moderndiver-book/
- 
-What's great is it teaches R and how to implement R from a modeling framework, demonstrates a powerful pipeline that we all should follow. It's based in part using Hadley Wickam's R book, and the "tidyverse" of packages. We'll talk more about this next week. 
-
-```{r moderndiver, echo=F, eval=F}
-
-needed_pkgs <- c("nycflights13", "dplyr", "ggplot2", "knitr", 
-  "okcupiddata", "dygraphs", "rmarkdown", "mosaic", "ggplot2movies")
-
-new.pkgs <- needed_pkgs[!(needed_pkgs %in% installed.packages())]
-
-if(length(new.pkgs)) {
-  install.packages(new.pkgs, repos = "http://cran.rstudio.com")
-}
-
-```
+Revisiting data classes and types.
 
 ## Data Classes
 
@@ -437,7 +421,7 @@ select(shrubs, site, ends_with("h"))
 select(shrubs, site, contains("d"))
 
 data_to_use <- select(shrubs, site, experiment, height)
-write.csv(data_to_use, file = "data_output/shrub_heights.csv", row.names = FALSE)
+# write.csv(data_to_use, file = "data_output/shrub_heights.csv", row.names = FALSE)
 
 ```
 
@@ -457,7 +441,7 @@ filter(shrubs, width >=2 | height > 3) # OR, can match either, but not necessari
 
 `dplyr` uses a package called [`magrittr`](https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html) which uses pipes.
 
-```{r pipes, echo=TRUE, eval=TRUE}
+```{r pipes, echo=TRUE, eval=FALSE}
 
 select(shrubs, site:width) %>% 
   filter(length > 3, width > 2) %>% 
@@ -466,8 +450,186 @@ select(shrubs, site:width) %>%
 ```
 
 
+# WEEK 4
+
+More `dplyr`! Today we'll quickly go over the first couple verbs from last week, and move forward with `mutate`, `group_by`, `summarize` and `arrange`. We will also over joins using the `dplyr` package.
+
+```{r get data, eval=FALSE, echo=TRUE}
+
+# data we'll be using, you should already have it
+download.file("https://ndownloader.figshare.com/files/2292169",
+              "data/portal_data_joined.csv")
 
 
+```
+
+We'll be using the `dplyr` and `nycflights13` packages, load them here (or `install.packges`) if needed.
+
+```{r}
+library(dplyr)
+library(nycflights13)
+
+# surveys <- read.csv('../data/portal_data_joined.csv')
+surveys <- read.csv('data/portal_data_joined.csv')
+
+
+```
+
+Covered `select` & `filter`:
+
+ - can select columns by names, attributes
+ - filter by rows, can filter by values
+ 
+```{r select and filter, echo=TRUE, eval=FALSE}
+
+select(surveys, plot_id, species_id, weight)
+filter(surveys, year == 1995)
+
+```
+
+Remember the shortcut for the pipe is "*Ctrl or Cmd + Shift + M*"
+
+```{r pipes2, echo=TRUE, eval=FALSE}
+
+surveys %>%
+  select(species_id, sex, weight) %>% 
+  filter(weight < 5)
+
+surveys_sml <- surveys %>%
+  select(species_id, sex, weight) %>% 
+  filter(weight < 5)
+
+```
+
+### Mutate
+
+```{r mutate, echo=TRUE}
+
+surveys %>% 
+  mutate(weight_kg = weight / 1000) %>% 
+  glimpse
+
+# filter out NA's from weight data
+
+surveys %>% 
+  filter(!is.na(weight)) %>% 
+  mutate(weight_kg = weight / 1000) %>% 
+  summary
+
+hindfoothalf <- surveys %>%
+  mutate(hindfoot_half = hindfoot_length / 2 ) %>% 
+  select(species_id, hindfoot_half) %>% 
+  filter(!is.na(hindfoot_half) & hindfoot_half < 30)
+  
+hindfoothalf <- surveys %>%
+  select(species_id, hindfoot_length) %>% 
+  mutate(hindfoot_half = hindfoot_length / 2 ) %>% 
+  select(species_id, hindfoot_half) %>% 
+  filter(!is.na(hindfoot_half) & hindfoot_half < 30)
+
+```
+
+#### Another Challenge
+
+**What was the heaviest animal measured in each year? Return the columns year, genus, species_id, and weight.**
+
+Okay, break this out into pieces...how do we get the heaviest animal in each year? 
+
+```{r surveys}
+
+surveys %>% 
+  filter(!is.na(weight)) %>% # filter out NAs
+  group_by(year) %>%  # group by year
+  top_n(1, weight) %>% 
+  select(year, species_id, weight) %>% 
+  arrange(year)
+
+```
+
+### Group_by and Summarize
+
+```{r group_by}
+
+weight_by_sex <- surveys %>%
+  group_by(sex) %>%
+  summarize(mean_weight = mean(weight, na.rm = TRUE))
+
+surveys %>%
+  filter(!is.na(weight) & sex != "") %>%
+  group_by(sex, species_id) %>%
+  summarize(mean_weight = mean(weight))
+
+```
+
+```{r tally}
+
+tallies <- surveys %>% 
+  group_by(species_id, sex) %>% 
+  filter(sex != "") %>% 
+  tally
+```
+
+### Data Tidying
+
+```{r surveys complete, echo=TRUE, eval=FALSE}
+surveys_complete <- surveys %>%
+  filter(species_id != "",         # remove missing species_id
+         !is.na(weight),           # remove missing weight
+         !is.na(hindfoot_length),  # remove missing hindfoot_length
+         sex != "")      
+
+
+## Extract the most common species_id
+species_counts <- surveys_complete %>%
+  group_by(species_id) %>%
+  tally %>%
+  filter(n >= 50)
+
+
+surveys_complete_2 <- surveys_complete %>%
+  filter(species_id %in% species_counts$species_id)
+
+surveys_complete_2 %>% 
+  group_by(species_id) %>% 
+  distinct()
+
+write.csv(surveys_complete_2, file = "data_output/surveys_complete.csv",
+          row.names=FALSE)
+
+```
+
+### Joins
+
+Following this lesson:
+
+**https://ismayc.github.io/moderndiver-book/5-manip.html#joining-data-frames**
+
+```{r joins}
+library(nycflights13)
+
+View(airlines)
+
+flights_joined <- flights %>% 
+  inner_join(airlines, by="carrier")
+
+# compare columns to make sure they joined
+dim(flights)
+dim(flights_joined)
+
+flights %>% 
+  inner_join(airports, by = c("dest" = "faa"))
+
+
+named_dests <- flights %>%
+  group_by(dest) %>%
+  summarize(num_flights = n()) %>% 
+  arrange(desc(num_flights)) %>% 
+  inner_join(airports, by = c("dest" = "faa")) %>% 
+  rename(airport_name = name)
+
+# write.csv
+
+```
 
 
 

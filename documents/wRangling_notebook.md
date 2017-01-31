@@ -782,15 +782,10 @@ Many options for plotting parameters (changing colors, shapes, etc). Really sky 
  - [Colors](http://research.stowers-institute.org/efg/R/Color/Chart/)
  - [Color palettes](http://colorbrewer2.org/)
 
+
 # WEEK 3
 
-A new and very nicely put together R/Stats Book worth checking out is here:
-
- - https://ismayc.github.io/moderndiver-book/
- 
-What's great is it teaches R and how to implement R from a modeling framework, demonstrates a powerful pipeline that we all should follow. It's based in part using Hadley Wickam's R book, and the "tidyverse" of packages. We'll talk more about this next week. 
-
-
+Revisiting data classes and types.
 
 ## Data Classes
 
@@ -1060,7 +1055,7 @@ select(shrubs, site, contains("d"))
 
 ```r
 data_to_use <- select(shrubs, site, experiment, height)
-write.csv(data_to_use, file = "data_output/shrub_heights.csv", row.names = FALSE)
+# write.csv(data_to_use, file = "data_output/shrub_heights.csv", row.names = FALSE)
 ```
 
 ### Using `filter`
@@ -1124,8 +1119,240 @@ select(shrubs, site:width) %>%
 ```
 
 
+# WEEK 4
+
+More `dplyr`! Today we'll quickly go over the first couple verbs from last week, and move forward with `mutate`, `group_by`, `summarize` and `arrange`. We will also over joins using the `dplyr` package.
 
 
+```r
+# data we'll be using, you should already have it
+download.file("https://ndownloader.figshare.com/files/2292169",
+              "data/portal_data_joined.csv")
+```
+
+We'll be using the `dplyr` and `nycflights13` packages, load them here (or `install.packges`) if needed.
+
+
+
+Covered `select` & `filter`:
+
+ - can select columns by names, attributes
+ - filter by rows, can filter by values
+ 
+
+```r
+select(surveys, plot_id, species_id, weight)
+filter(surveys, year == 1995)
+```
+
+Remember the shortcut for the pipe is "*Ctrl or Cmd + Shift + M*"
+
+
+```r
+surveys %>%
+  select(species_id, sex, weight) %>% 
+  filter(weight < 5)
+
+surveys_sml <- surveys %>%
+  select(species_id, sex, weight) %>% 
+  filter(weight < 5)
+```
+
+### Mutate
+
+
+```r
+surveys %>% 
+  mutate(weight_kg = weight / 1000) %>% 
+  glimpse
+```
+
+```
+## Observations: 34,786
+## Variables: 14
+## $ record_id       <int> 1, 72, 224, 266, 349, 363, 435, 506, 588, 661,...
+## $ month           <int> 7, 8, 9, 10, 11, 11, 12, 1, 2, 3, 4, 5, 6, 8, ...
+## $ day             <int> 16, 19, 13, 16, 12, 12, 10, 8, 18, 11, 8, 6, 9...
+## $ year            <int> 1977, 1977, 1977, 1977, 1977, 1977, 1977, 1978...
+## $ plot_id         <int> 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2...
+## $ species_id      <fctr> NL, NL, NL, NL, NL, NL, NL, NL, NL, NL, NL, N...
+## $ sex             <fctr> M, M, , , , , , , M, , , M, M, M, M, , M, M, ...
+## $ hindfoot_length <int> 32, 31, NA, NA, NA, NA, NA, NA, NA, NA, NA, 32...
+## $ weight          <int> NA, NA, NA, NA, NA, NA, NA, NA, 218, NA, NA, 2...
+## $ genus           <fctr> Neotoma, Neotoma, Neotoma, Neotoma, Neotoma, ...
+## $ species         <fctr> albigula, albigula, albigula, albigula, albig...
+## $ taxa            <fctr> Rodent, Rodent, Rodent, Rodent, Rodent, Roden...
+## $ plot_type       <fctr> Control, Control, Control, Control, Control, ...
+## $ weight_kg       <dbl> NA, NA, NA, NA, NA, NA, NA, NA, 0.218, NA, NA,...
+```
+
+```r
+# filter out NA's from weight data
+
+surveys %>% 
+  filter(!is.na(weight)) %>% 
+  mutate(weight_kg = weight / 1000) %>% 
+  summary
+```
+
+```
+##    record_id         month             day             year     
+##  Min.   :   63   Min.   : 1.000   Min.   : 1.00   Min.   :1977  
+##  1st Qu.: 9056   1st Qu.: 4.000   1st Qu.: 9.00   1st Qu.:1984  
+##  Median :17928   Median : 6.000   Median :16.00   Median :1990  
+##  Mean   :17950   Mean   : 6.491   Mean   :16.17   Mean   :1991  
+##  3rd Qu.:26764   3rd Qu.:10.000   3rd Qu.:23.00   3rd Qu.:1997  
+##  Max.   :35548   Max.   :12.000   Max.   :31.00   Max.   :2002  
+##                                                                 
+##     plot_id        species_id    sex       hindfoot_length
+##  Min.   : 1.00   DM     :10262    :  101   Min.   : 2.00  
+##  1st Qu.: 5.00   PP     : 3024   F:15303   1st Qu.:21.00  
+##  Median :11.00   DO     : 2904   M:16879   Median :31.00  
+##  Mean   :11.24   PB     : 2810             Mean   :29.21  
+##  3rd Qu.:17.00   RM     : 2535             3rd Qu.:36.00  
+##  Max.   :24.00   DS     : 2344             Max.   :64.00  
+##                  (Other): 8404             NA's   :1545   
+##      weight                   genus               species     
+##  Min.   :  4.00   Dipodomys      :15510   merriami    :10262  
+##  1st Qu.: 20.00   Chaetodipus    : 5844   penicillatus: 3024  
+##  Median : 37.00   Onychomys      : 3136   ordii       : 2904  
+##  Mean   : 42.67   Reithrodontomys: 2620   baileyi     : 2810  
+##  3rd Qu.: 48.00   Peromyscus     : 2172   megalotis   : 2535  
+##  Max.   :280.00   Perognathus    : 1579   spectabilis : 2344  
+##                   (Other)        : 1422   (Other)     : 8404  
+##       taxa                           plot_type       weight_kg      
+##  Bird   :    0   Control                  :14652   Min.   :0.00400  
+##  Rabbit :    0   Long-term Krat Exclosure : 4692   1st Qu.:0.02000  
+##  Reptile:    0   Rodent Exclosure         : 3818   Median :0.03700  
+##  Rodent :32283   Short-term Krat Exclosure: 5407   Mean   :0.04267  
+##                  Spectab exclosure        : 3714   3rd Qu.:0.04800  
+##                                                    Max.   :0.28000  
+## 
+```
+
+```r
+hindfoothalf <- surveys %>%
+  mutate(hindfoot_half = hindfoot_length / 2 ) %>% 
+  select(species_id, hindfoot_half) %>% 
+  filter(!is.na(hindfoot_half) & hindfoot_half < 30)
+  
+hindfoothalf <- surveys %>%
+  select(species_id, hindfoot_length) %>% 
+  mutate(hindfoot_half = hindfoot_length / 2 ) %>% 
+  select(species_id, hindfoot_half) %>% 
+  filter(!is.na(hindfoot_half) & hindfoot_half < 30)
+```
+
+#### Another Challenge
+
+**What was the heaviest animal measured in each year? Return the columns year, genus, species_id, and weight.**
+
+Okay, break this out into pieces...how do we get the heaviest animal in each year? 
+
+
+```
+## Source: local data frame [27 x 3]
+## Groups: year [26]
+## 
+##     year species_id weight
+##    <int>     <fctr>  <int>
+## 1   1977         DS    149
+## 2   1978         NL    232
+## 3   1978         NL    232
+## 4   1979         NL    274
+## 5   1980         NL    243
+## 6   1981         NL    264
+## 7   1982         NL    252
+## 8   1983         NL    256
+## 9   1984         NL    259
+## 10  1985         NL    225
+## # ... with 17 more rows
+```
+
+### Group_by and Summarize
+
+
+```
+## Source: local data frame [48 x 3]
+## Groups: sex [?]
+## 
+##       sex species_id mean_weight
+##    <fctr>     <fctr>       <dbl>
+## 1       F         BA     9.16129
+## 2       F         DM    41.60968
+## 3       F         DO    48.53125
+## 4       F         DS   117.74955
+## 5       F         NL   154.28221
+## 6       F         OL    31.06582
+## 7       F         OT    24.83090
+## 8       F         OX    21.00000
+## 9       F         PB    30.21088
+## 10      F         PE    22.82218
+## # ... with 38 more rows
+```
+
+
+
+### Data Tidying
+
+
+```
+## Source: local data frame [14 x 1]
+## Groups: species_id [14]
+## 
+##    species_id
+##        <fctr>
+## 1          NL
+## 2          DM
+## 3          PF
+## 4          PE
+## 5          DS
+## 6          PP
+## 7          SH
+## 8          OT
+## 9          DO
+## 10         OL
+## 11         RM
+## 12         PM
+## 13         RF
+## 14         PB
+```
+
+### Joins
+
+Following this lesson:
+
+**https://ismayc.github.io/moderndiver-book/5-manip.html#joining-data-frames**
+
+
+```
+## [1] 336776     19
+```
+
+```
+## [1] 336776     20
+```
+
+```
+## # A tibble: 329,174 × 26
+##     year month   day dep_time sched_dep_time dep_delay arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1   2013     1     1      517            515         2      830
+## 2   2013     1     1      533            529         4      850
+## 3   2013     1     1      542            540         2      923
+## 4   2013     1     1      554            600        -6      812
+## 5   2013     1     1      554            558        -4      740
+## 6   2013     1     1      555            600        -5      913
+## 7   2013     1     1      557            600        -3      709
+## 8   2013     1     1      557            600        -3      838
+## 9   2013     1     1      558            600        -2      753
+## 10  2013     1     1      558            600        -2      849
+## # ... with 329,164 more rows, and 19 more variables: sched_arr_time <int>,
+## #   arr_delay <dbl>, carrier <chr>, flight <int>, tailnum <chr>,
+## #   origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>, name <chr>, lat <dbl>, lon <dbl>,
+## #   alt <int>, tz <dbl>, dst <chr>, tzone <chr>
+```
 
 
 
