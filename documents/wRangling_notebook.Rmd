@@ -489,6 +489,11 @@ filter(surveys, year == 1995)
 
 Remember the shortcut for the pipe is "*Ctrl or Cmd + Shift + M*"
 
+If you aren't sure of shortcut keys in RStudio, you can use:
+
+ - Mac: `Shift + fn + option/alt + k`
+ - PC: `Shift + alt + k`
+
 ```{r pipes2, echo=TRUE, eval=FALSE}
 
 surveys %>%
@@ -633,9 +638,319 @@ named_dests <- flights %>%
 
 
 
+# WEEK 5: 
+
+**Myfanwy** Lecturing on using `ggplot2`!
+
+
+What you'll need to have installed:
+
+```{r setup}
+library(tidyverse)
+
+# or if you want to be on the bleeding edge:
+library(devtools) # this is a package to install the development versions of things
+install_github("Hadley/ggplot2") # install most current dev. version from github
+library(ggplot2)
+```
+
+## Outline
+
+ 1. Grammar of graphics - `ggplot()` and its arguments
+ 2. Bar plot
+      - adding error bars
+ 3. Scatter plots
+ 4. Box plots
+      - violin plots
+ 5. Line charts
+      - small multiples (faceting)
+      - date on the x-axis
+ 6. Fun with Dates & Times on axes
+ 7. Saving plots with ggsave()
+
+## GG
+
+Stands for Grammar of Graphics.  
+
+Much of this script was taken from [Nick Strayer's Visualization in R page] (http://nickstrayer.me/visualization_in_r/).
+
+Basic structure is as follows, imagine we have a dataframe called `df`.
+
+```{r ggplot structure}
+
+library(ggplot2)
+
+ggplot(data=iris, # the data you want to "map/plot"
+       mapping=aes( # the mapping AESthetics
+         x = Sepal.Length,
+         y = Petal.Length,
+         color=Species,
+         fill= Species
+         )) + 
+  # now add a geometry, there are over 20 diff types
+  geom_point(shape=2, size=3)
+
+```
+
+Keep in mind `ggplot` is quite intelligent in how it interprets the data/plot. It is good at guessing what you mean, as long as you retain the order of the arguments...so the above plot is the same as 
+
+```{r ggplot simple}
+
+ggplot(iris, # the data you want to "map/plot"
+       aes( # the mapping AESthetics
+         Sepal.Length,
+         Petal.Length,
+         color=Species,
+         fill= Species
+         )) + 
+  # now add a geometry, there are over 20 diff types
+  geom_point(shape=2, size=3)
+
+```
+
+More examples:
+
+```{r}
+
+data = data.frame(student = c("Tina", "Trish", "Kevin", "Rebecca", "Sarah"),
+                  percentile = c(25, 95, 54, 70, 99)  ) #percentile of d levels
+
+plot = ggplot(data, aes(x = student, y = percentile))
+
+plot + geom_bar() # needs 1 bar per statistic so add:
+
+plot + geom_bar(stat="identity")
+
+
+```
+
+### Histograms
+
+```{r histogram}
+
+diamonds %>% 
+  count(cut, clarity) %>% 
+  ggplot(aes(clarity, n, color=cut)) + geom_point()
+
+ggplot(diamonds, aes(price, fill=cut)) +
+  geom_histogram(binwidth = 500)
+
+```
+
+### PointRange
+
+That's nice.  Bar charts are nice.  But when the y-axis is a percentile (or a proportion, or anything with conventional bounds, really), dot-charts represent relationships better:
+
+```{r pointrange}
+# Hacking the geom_pointrange a bit so that the lines are the whole width.
+plot + geom_pointrange(aes(ymin = 0, ymax = 100)) + coord_flip()
+
+```
+
+That's nice too.  What if we want to arrange them in ascending or descending order of percentile?
+
+```{r pointrange2}
+
+plot = ggplot(data, aes(x = reorder(student, percentile), y = percentile))
+
+plot + geom_pointrange(aes(ymin = 0, ymax = 100)) + coord_flip() 
+
+```
+
+### Error Bars
+
+First, see page 61 of the ggplot2 book.
+
+For geoms that display an error, you need a column in your dataframe that explicitly contains the standard error, and then you're going to add/subtract that SE from each y value by using the `ymin` and `ymax` arguments within the `aesthetic()` call:
+
+```{r errorbars}
+
+y <- c(18, 11, 16)
+df <- data.frame(animals = c("cats", "dogs", "orangutans"), y = y, se = c(1.2, 0.5, 1.0))
+df
+
+base <- ggplot(df, aes(x = animals, y = y))
+base
+base <- base + geom_bar(stat = "identity", aes(fill = animals)) + ylim(c(0, 20))
+base
+base + geom_crossbar(aes(ymin = y - se, ymax = y + se))
+
+base + geom_errorbar(aes(ymin = y - se, ymax = y + se, width = 0.5))
+
+base + geom_pointrange(aes(ymin = y - se, ymax = y + se))
+
+
+base + geom_smooth(stat = "identity")
+
+base + geom_bar(stat = "identity") + geom_errorbar(aes(ymin= y-se, ymax= y+se, width = 0.5))
+
+base + geom_linerange(aes(ymin = y - se, ymax = y + se))
+
+base + geom_ribbon(aes(ymin = y - se, ymax = y + se), alpha = 0.5)
+
+```
 
 
 
+### Box Plots
+
+Box plots are, like the pie chart, one of the first visualization techniques we are taught. However, it is not always a good choice (see ggplot2 resources in the wiki for more info there).
+
+```{r babynames}
+# install.packages("babynames")
+
+library(babynames)
+
+# find the most popular babynames for each sex in the whole dataset:
+d <- babynames %>%
+  group_by(sex, name) %>% 
+  mutate(totaln =sum(n)) %>% 
+  summarise(mostpop = max(totaln)) %>% 
+  arrange(-mostpop) %>% 
+  filter(!duplicated(sex))
+
+# now use the whole dataset to plot them over time:
+
+mp <- filter(babynames, year >= 1995, name == "Mary" | name == "James") 
+str(mp)
+mp %>% filter(year == 1995)
+mp <- filter(mp, name == "Mary" & sex == "F" | name == "James" & sex == "M") # that should clear things up.
+
+ggplot(mp, aes(x=sex, y=n)) + 
+  geom_boxplot(aes(color=name))
+```
+
+#### Adding Manual Scales for Color, Shape, Fill
+
+You can play with the scales for each axis, and for many of the different values (colors, fill, shapes, etc.).
+
+Let's see an example based on colors. See here: http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
+
+```{r scale_color}
+
+ggplot(mp, aes(x=sex, y=n)) + 
+  geom_boxplot(aes(color=name)) +
+  scale_color_manual(values=c("green", "yellow"))
+
+
+ggplot(mp, aes(x=sex, y=n)) + 
+  geom_point(aes(color=name, fill=name), pch=21) + # pch=21 is for a hollow circle
+  scale_color_manual(values=c("green", "yellow")) +
+  scale_fill_manual(values=c("darkgreen", "orange"))
+
+ggplot(mp, aes(x=sex, y=n)) + 
+  geom_point(aes(color=name, shape=name,  size=n), pch=21) + 
+  scale_color_manual(values=c("green", "orange"))
+
+
+```
+
+#### Facetting
+
+How to make `facets` of your plots, basically different panels for different groups.
+
+```{r facetting}
+
+p <- ggplot(mp, aes(x=name, y=n)) +
+  geom_boxplot(aes(color = name))
+
+
+# wrapping the plots or facetting them is a way to assign a plot across different columns or variables. To do so, you need to use the "~"
+
+p + facet_wrap(~year)
+
+# lets use the iris dataset
+head(iris)
+dim(iris)
+
+# basic scatter plot 
+ggplot(iris, aes(x=Petal.Length, y=Petal.Width)) + 
+  geom_point() + facet_wrap(~Species)
+
+# Play around with this more 
+ggplot(iris, aes(x=Petal.Length, y=Petal.Width)) + 
+  geom_point(aes(color= Species), size=3) + facet_wrap(~Species)
+
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, color = Species)) + 
+  geom_point(aes(shape = Species), size = 3) +
+  facet_wrap(~Species)
+
+# add a line to the plot
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, color = Species)) + 
+  geom_point(aes(shape = Species), size = 3) + geom_smooth(method="lm", color="black", se = FALSE) + 
+  facet_wrap(~Species)
+
+```
+
+
+### Lineplots
+
+ - small multiples (faceting)
+ - date on the x-axis
+
+Say you have a lot of time series data. You might want to compare temporal trends in some measurement for patients in a clinical trial. One natural tendency might be to plot all of their values on the same plot, like below.
+
+```{r lineplots}
+
+library(reshape2)
+line_data <- data.frame(x_val = 1:50)
+
+# generate sin values for 50 random normal distributions of each letter
+for (letter in letters){
+  slope = rnorm(1)
+  line_data[,letter] <- sin(line_data$x_val + rnorm(1))*slope + rnorm(50)
+}
+head(line_data)
+#melt the big dataframe to a tidy one.
+tidy_lines = melt(line_data, id = c("x_val"))
+head(tidy_lines) # so now letter = variable, and value = value.
+
+#plot with different lines for different letters.
+
+ggplot(tidy_lines, aes(x = x_val, y = value, color = variable)) + geom_line() + labs(title = "Delicious data spagetti")
+
+```
+
+Well this is a mess. You really can't tell what's going on in any way. If you want to see any trends or potential outliers you better be able to distinguish between the shade of green for k and i, and then be able to filter out all the noise and run 50 choose 2 comparisons in your head.
+
+A way to get around this is using a technique known as small multiples. In small multiples you have a bunch of little tiny charts all with a single data element. So in this case it would be 50 separate line plots with one line each.
+
+```{r tidylines}
+
+ggplot(tidy_lines, aes(x = x_val, y = value)) + 
+  geom_line() + 
+  facet_wrap(~variable) + 
+  labs(title = "Small multiple lines")
+
+```
+
+As you can see, patterns are much easier to spot and outliers pop out immediately.
+
+There is another method of dealing with this information overload. Say you have explored your data and want to highlight a single (or maybe two) value in the context of the others. You can highlight that individual line (or whatever graphical element you desire) to call attention to it alone in the chart. This is much more of an explanatory data visualization technique but it does work very well for showing context for an individual element.
+
+```{r outliers_lineplots}
+
+# cut our dataframe down to just the line we want to show:
+z_line <- tidy_lines[tidy_lines$variable == "z", ]
+
+# add the line like the first plot but make them all grey and semi-transparent, then add the specific line you want to highlight by doing a separate data layer
+
+ggplot(tidy_lines) + 
+  geom_line(aes(x = x_val, y = value, group = variable),color = "grey", alpha = 0.7) +
+  labs(title = "Highlighted line") + 
+  geom_line(data = z_line, aes(x = x_val, y = value, group = variable), color = "steelblue")
+
+```
+
+
+### `ggthemes` package is fun way to add new themes
+
+```{r themes}
+
+install.packages("ggthemes")
+
+
+```
 
 
 
