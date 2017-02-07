@@ -2,11 +2,11 @@
 title: "ECL290 w**R**angling Notebook"
 author: "Ryan Peek"
 date: "Updated: `r format(Sys.Date())`"
+always_allow_html: yes
 output:
-  html_document:
-    highlight: pygments
-    theme: yeti
-    keep_md: true
+  github_document: 
+    toc: true
+    toc_depth: 3
 ---
 
 ```{r setup, include=FALSE}
@@ -51,7 +51,7 @@ You can customize these to your heart's content. Many options, styles, etc. What
  
 The lines at the top of this *Rmd* file are setting the global code chunk options. If you want, you could load packages here, but probably not advised because the setup chunk won't show up in the document (it's hidden using `include=FALSE`).
 
-```{r eval=FALSE, echo=TRUE}
+```{r demosetup, eval=FALSE, echo=TRUE}
 
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 knitr::opts_knit$set(root.dir = normalizePath("../"))
@@ -371,7 +371,7 @@ medicine <- as.factor(medicine) # way to convert to a given
 
 Make sure you have the package installed, then load it using the `library()` function.
 
-```{r echo=TRUE, eval=FALSE}
+```{r dplyr, echo=TRUE, eval=FALSE}
 install.packages("dplyr")
 library(dplyr)
 
@@ -465,7 +465,7 @@ download.file("https://ndownloader.figshare.com/files/2292169",
 
 We'll be using the `dplyr` and `nycflights13` packages, load them here (or `install.packges`) if needed.
 
-```{r}
+```{r flightssurveys}
 library(dplyr)
 library(nycflights13)
 
@@ -645,12 +645,12 @@ named_dests <- flights %>%
 
 What you'll need to have installed:
 
-```{r setup}
+```{r w5setup}
 library(tidyverse)
 
 # or if you want to be on the bleeding edge:
-library(devtools) # this is a package to install the development versions of things
-install_github("Hadley/ggplot2") # install most current dev. version from github
+#library(devtools) # this is a package to install the development versions of things
+#install_github("Hadley/ggplot2") # install most current dev. version from github
 library(ggplot2)
 ```
 
@@ -710,14 +710,18 @@ ggplot(iris, # the data you want to "map/plot"
 
 More examples:
 
-```{r}
+```{r samplebarplots}
 
 data = data.frame(student = c("Tina", "Trish", "Kevin", "Rebecca", "Sarah"),
                   percentile = c(25, 95, 54, 70, 99)  ) #percentile of d levels
 
 plot = ggplot(data, aes(x = student, y = percentile))
 
-plot + geom_bar() # needs 1 bar per statistic so add:
+# This will throw an error:
+# plot + geom_bar() 
+# "Error: stat_count() must not be used with a y aesthetic."
+
+## This means you need/want only 1 bar per statistic so add:
 
 plot + geom_bar(stat="identity")
 
@@ -946,10 +950,7 @@ ggplot(tidy_lines) +
 ### `ggthemes` package is fun way to add new themes
 
 ```{r themes}
-
-install.packages("ggthemes")
-
-
+# install.packages("ggthemes")
 ```
 
 
