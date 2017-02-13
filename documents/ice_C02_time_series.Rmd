@@ -1,12 +1,10 @@
 ---
-title: "Ice CO2 Record"
+title: "Time Series Data: CO2, Meterological, Etc"
 author: "Ryan Peek"
 date: "Updated: `r format(Sys.Date())`"
+always_allow_html: yes
 output:
-  html_document:
-    highlight: pygments
-    theme: yeti
-    keep_md: true
+  github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -37,11 +35,24 @@ If we want to make a basic plot, we can use the following code to simply show th
 
 ```{r baseplot}
 
+#plot(df$depth_m, df$ice_age_yr_BP)
+
 # baseplot
-with(df, plot(x=air_age_yr_BP/1000, y=C02_conc_ppmv, type = "l", col="darkblue", ylab=expression(paste("C0"[2]," Concentration (ppmv)"), sep=""), xlab="Age of Entrapped Air (kyr BP)", main="C02 through Time: Vostok Ice Core Data", ylim=c(180, 420)))
-with(df, points(x=air_age_yr_BP/1000, y=C02_conc_ppmv, xlab=NULL, ylab=NULL, pch=21, col="gray50", bg="skyblue2"))
-with(df, points(x=0, y=406, pch=16, col="red", cex=1.7))
-text(x=0, y = 406, labels = "C02 Level \n on Jan 31, 2017!",font = 4, col = "maroon", pos = 4)
+with(df, plot(x=air_age_yr_BP/1000, y=C02_conc_ppmv,
+              type = "l", col="darkblue", 
+              ylab=expression(paste("C0"[2] ," Concentration (ppmv)"), sep=""),
+              xlab="Age of Entrapped Air (kyr BP)", 
+              main=expression(paste("C0"[2]," through Time: Vostok Ice Core Data", sep="")), ylim=c(180, 420)))
+
+# add another layer
+with(df, points(x=air_age_yr_BP/1000, y=C02_conc_ppmv,
+                xlab=NULL, ylab=NULL, pch=21, col="gray50",
+     bg="skyblue2"))
+
+# plot modern CO2 levels
+points(x=0, y=406, pch=16, col="red", cex=1.7)
+text(x=0, y = 406, labels = "C02 Level \n on Jan 31, 2017!",
+     font = 4, col = "maroon", pos = 4)
 
 ```
 
@@ -53,12 +64,17 @@ library(ggplot2)
 library(dplyr)
 library(viridis) # for nice color scheme
 
-ggplot() + geom_line(data=df, aes(x=air_age_yr_BP/1000, y=C02_conc_ppmv), color="darkblue") + 
-  geom_point(data=df, aes(x=air_age_yr_BP/1000, y=C02_conc_ppmv, fill=depth_m), pch=21) + scale_fill_viridis() +
+ggplot() + 
+  geom_line(data=df, aes(x=air_age_yr_BP/1000, y=C02_conc_ppmv),
+                     color="gray20") + 
+  geom_point(data=df, aes(x=air_age_yr_BP/1000, y=C02_conc_ppmv, fill=depth_m), pch=21) +
+  scale_fill_viridis() +
   scale_y_continuous(limits = c(180, 420)) +
   labs(x="Age of Entrapped Air (kyr BP)", y=expression(paste(C0[2]," Concentration (ppmv)", sep=""))) +
   #geom_smooth(data=df, aes(x=air_age_yr_BP/1000, y=C02_conc_ppmv)) +
-    geom_hline(yintercept=406, col="red", lty=2) + geom_label(data=NULL, aes(x=20, y=406, label="Current C02 Level"), col="red", nudge_x = 30)
+  geom_hline(yintercept=406, col="red", lty=2) + 
+  geom_label(data=NULL, aes(x=20, y=406, label="Current C02 Level"), 
+             col="red", nudge_x = 30) + theme_bw()
 
 ```
 
@@ -75,7 +91,7 @@ library(mapdata)
 library(measurements)
 
 # change the degree symbol to a space
-xlat <- gsub('°', '','-78.4645°')
+xlat <- gsub(pattern = '°', replacement = '',x = '-78.4645°')
 xlon <- gsub('°', '','106.8340°')
 
 ice<-data.frame("x"=as.numeric(xlon), "y"=as.numeric(xlat))
@@ -84,18 +100,18 @@ ice<-data.frame("x"=as.numeric(xlon), "y"=as.numeric(xlat))
 #xlat <- measurements::conv_unit(xlat, from = 'dec_deg', to = 'deg_min_sec')
 #xlon <- measurements::conv_unit(xlon, from = 'dec_deg', to = 'deg_min_sec')
 
-map.where(database = "world", x=ice$x, y=ice$y, col="red", add=TRUE)
+map.where(database = "world", x=ice$x, y=ice$y)
 
 #map(database = "world", projection = "albers", par=c(-30,-40), plot=TRUE)
 
 map(database = "world", plot=TRUE, fill = TRUE, col="gray80")
 map.axes()
 points(x = ice$x, y = ice$y, pch=21, bg="red", cex=2)
-
+title(main = "Vostok, Antartica", sub = "Location of ice core data")
 
 ```
 
-## What About Today?
+## What About C0~2~ Today?
 
 A good site to check the current C0~2~ emission level is [here](https://www.co2.earth/). NOAA's [site](https://www.esrl.noaa.gov/gmd/ccgg/trends/monthly.html) provides trends across different time stamps, dating back to **1959** using the Mauna Loa Observatory measurents.
 
@@ -124,3 +140,115 @@ ggplot() + geom_line(data=df_ann, aes(x=year, y=ann_C02), color="darkblue") +
   scale_x_continuous(breaks = seq(1955,2017,5), labels = seq(1955,2017,5)) + ggtitle("C02 At Mauna Loa Since 1958")
 
 ```
+
+## Fine Scale Meterological Data
+
+There's an abundance of meterological data available for download now, but since we are still thinking about C0~2~, let's pull some fine-scale meterological data from the Mauna Loa station. This is met data collected every **minute** for a whole year.
+
+Metadata for this is [here](ftp://aftp.cmdl.noaa.gov/data/meteorology/in-situ/README). Data used in this example is [here (minute scale met data)](ftp://aftp.cmdl.noaa.gov/data/meteorology/in-situ/mlo/2001/)
+
+To actually go download all these in one go, try using some UNIX/terminal code! This will most likely only work in OSX, but you should be able to install `wget` on most any platform. However, you don't have to do this, because this data is already available for download on github [here]()
+
+```{r echo=T, eval=F}
+
+# change directory to current dir
+system("cd ~/Documents/github/teaching/wRangling_Lectures/data")
+
+# get all files in a single dir
+system("wget --no-verbose --no-parent --recursive --level=1 --no-directories ftp://aftp.cmdl.noaa.gov/data/meteorology/in-situ/mlo/2001/")
+
+```
+
+
+
+So we have 12 files, each a month worth of measurements taken every minute, which is roughly _(`44,000` measurements `*` `12` months)_, or about a half million lines of data. Give or take.
+
+First step, how do we read in this many files at once and merge them?
+
+### Read in [Multiple Files](http://serialmentor.com/blog/2016/6/13/reading-and-combining-many-tidy-data-files-in-R)
+
+```{r read multfiles}
+require(readr)  # for read_csv()
+require(dplyr)  # for mutate()
+require(tidyr)  # for unnest()
+require(purrr)  # for map(), reduce()
+
+folder <- "data/2001_mauna_loa_met_data"      
+files_list <- dir(path = folder, pattern = "*.txt")
+
+# simple version
+data <- files_list %>%
+  purrr::map(~read.table(file.path(folder, .), header = FALSE)) %>%    # read in all the files individually
+  reduce(rbind)       # reduce with rbind into one dataframe 
+colnames(data)<-c("siteID", "year", "month", "day", "hour24", "min", "windDir",   "windSpeed_m_s", "windSteady", "baro_hPa", "temp_C_2m", "temp_C_10m", "temp_C_towertop", "rel_humid", "precip_intens_mm_hr")  
+
+head(data)
+dim(data)
+
+# add some more info
+data <- data_frame(filename = files_list) %>% # create dataframe
+  mutate(file_contents = map(filename, # read files into
+                             ~read.table(file.path(folder, .), header = FALSE))) %>% 
+  unnest
+colnames(data)<-c("filename", "siteID", "year", "month", "day", "hour24", "min", "windDir",   "windSpeed_m_s", "windSteady", "baro_hPa", "temp_C_2m", "temp_C_10m", "temp_C_towertop", "rel_humid", "precip_intens_mm_hr")
+
+dim(data)
+
+```
+
+Wow that's cool!
+
+Okay, but now let's plot some of this insanity. First we need to get times into a format we can play with.
+
+### Datetimes (aka Insanity)
+
+First, please read:
+
+ - this lesson on [dates & spreadsheets](http://www.datacarpentry.org/spreadsheet-ecology-lesson/03-dates-as-data.html)
+ - https://www.stat.berkeley.edu/~s133/dates.html
+ - https://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html
+ - http://www.noamross.net/blog/2014/2/10/using-times-and-dates-in-r---presentation-code.html
+
+Various commands and functions available:
+
+**Dates**
+ - `as.Date("2016-01-01")` = `r as.Date("2016-01-01")`
+ - `lubridate::ymd("2016-01-01")` or `lubridate::mdy` or `lubridate::dmy` = `r lubridate::ymd("2016-01-01")`
+ 
+**Datetimes with Timezones**
+ - `as.POSIXct("2016-01-01 12:00", "UTC")` = `r as.POSIXct("2016-01-01 12:00", "UTC")`
+ - `strptime("2016/01/01 12:00",format = "%Y/%m/%d %H:%M")` = `r strptime("2016/01/01 12:00",format = "%Y/%m/%d %H:%M")`
+ - `lubridate::ymd_hms("2016/01/01 21:22:22")` = `r lubridate::ymd_hms("2016/01/01 21:22:22")`
+ - `lubridate::ymd_hms("20160101 21:22:22")` = `r lubridate::ymd_hms("20160101 21:22:22")`
+ - `lubridate::ymd_hms("2016-01-01 21:22:22", tz = "America/Los_Angeles")` = `r lubridate::ymd_hms("2016-01-01 21:22:22", tz = "America/Los_Angeles")`
+
+**Datetimes without Timezones** using **`chron`** package
+ - `chron::as.chron("2013-07-24 23:55:26")` = `r chron::as.chron("2013-07-24 23:55:26")`
+ - `chron::as.chron("07/25/13 08:32:07", "%m/%d/%y %H:%M:%S")` = `r chron::as.chron("07/25/13 08:32:07", "%m/%d/%y %H:%M:%S")`
+
+
+```{r}
+library(lubridate)
+
+data$datetime <- ymd_hm(paste0(data$year,"-", data$month, "-", data$day," ", data$hour24, ":", data$min))
+
+summary(data)
+
+# clean up the NA data (stuff = -99 or -999)
+df <- data %>% 
+  filter(!rel_humid == -99, 
+         !temp_C_2m == -999,
+         !windSpeed_m_s == -99.9)
+
+
+library(ggplot2)
+
+ggplot() + 
+  geom_line(data=df, aes(x=datetime, y=rel_humid, color=temp_C_2m), alpha=0.5) + 
+  geom_line(data=df, aes(x=datetime, y=windSpeed_m_s*10)) +
+  viridis::scale_color_viridis() + ylim(0, 100)
+
+```
+
+
+
