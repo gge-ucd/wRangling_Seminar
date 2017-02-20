@@ -1,7 +1,17 @@
 R-timeseries
 ================
 Ryan Peek
-Updated: 2017-02-19
+Updated: 2017-02-20
+
+-   [Background Reading](#background-reading)
+-   [Dates & Times in R](#dates-times-in-r)
+    -   [Working with Dates](#working-with-dates)
+        -   [The `lubridate` package & Dates](#the-lubridate-package-dates)
+    -   [Working with Datetimes & Timezones](#working-with-datetimes-timezones)
+        -   [The `lubridate` package & datetimes](#the-lubridate-package-datetimes)
+    -   [Datetimes without Timezones (and `chron`)](#datetimes-without-timezones-and-chron)
+    -   [Challenge 1: Mauna Loa Meterological Data](#challenge-1-mauna-loa-meterological-data)
+        -   [Challenge](#challenge)
 
 Background Reading
 ==================
@@ -106,10 +116,10 @@ The `chron` package may be helpful for these tasks, however, this may also be a 
 -   `chron::as.chron("2013-07-24 23:55:26")` = 1.591099710^{4}
 -   `chron::as.chron("07/25/13 08:32:07", "%m/%d/%y %H:%M:%S")` = 1.591135610^{4}
 
-Example & Challenge 1: Mauna Loa Meterological Data
----------------------------------------------------
+Challenge 1: Mauna Loa Meterological Data
+-----------------------------------------
 
-So, now that we have a decent idea how to format these things, let's look at some real data, try to format and plot. Let's use the Mauna Loa meterological data, collected every minute for the year 2001. It's 459,769 observations for 9 different metrics of wind, humidity, barometric pressure, air temperature, and precipitation.
+So, now that we have a decent idea how to format these things, let's look at some real data, try to format and plot. Let's use the Mauna Loa meterological data, collected every minute for the year 2001. *This dataset has 459,769 observations for 9 different metrics of wind, humidity, barometric pressure, air temperature, and precipitation.*
 
 ``` r
 # let's load our climate data from our previous lesson:
@@ -171,8 +181,15 @@ One of the important components to consider is each of the datetime columns has 
 # we need to make a datetime column...let's use paste
 mloa_2001$datetime <- paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min) # this makes a character column
 
+head(mloa_2001$datetime) # character vector but not POSIXct yet
+```
+
+    ## [1] "2001-1-1 0:0" "2001-1-1 0:1" "2001-1-1 0:2" "2001-1-1 0:3"
+    ## [5] "2001-1-1 0:4" "2001-1-1 0:5"
+
+``` r
 # we can nest this within a lubridate function to convert directly to POSIXct
-mloa_2001$datetime <- ymd_hm(paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min))
+mloa_2001$datetime <- ymd_hm(paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min), tz = "Pacific/Honolulu")
 
 summary(mloa_2001) # notice a new column called "datetime"
 ```
@@ -214,21 +231,37 @@ summary(mloa_2001) # notice a new column called "datetime"
     ##  Max.   :2001-12-31 23:59:00
 
 ``` r
-library(ggplot2)
-
-# clean up the NA data (NA's are = -99 or -999 depending on data col)
-mloa_2001 %>% 
-  filter(!rel_humid == -99, 
-         !temp_C_2m == -999,
-         !windSpeed_m_s == -99.9,
-         month==3) %>% 
-  ggplot(.) + 
-  geom_point(aes(x=datetime, y=rel_humid, color=temp_C_2m), alpha=0.5) + 
-  viridis::scale_color_viridis() + ylim(0, 100)
+head(mloa_2001$datetime) # in POSIXct
 ```
 
-    ## Warning: Removed 55 rows containing missing values (geom_point).
+    ## [1] "2001-01-01 00:00:00 HST" "2001-01-01 00:01:00 HST"
+    ## [3] "2001-01-01 00:02:00 HST" "2001-01-01 00:03:00 HST"
+    ## [5] "2001-01-01 00:04:00 HST" "2001-01-01 00:05:00 HST"
 
-![](R-timeseries_files/figure-markdown_github/clean%20up%20data%20and%20plot%20March-1.png)
+### Challenge
 
-[1] 1
+-   Remove the NA's (-99 and -999) in `rel_humid`, `temp_C_2m`, `windSpeed_m_s`
+-   Use `dplyr` to calculate the mean monthly temperature (`temp_C_2m`) using the `datetime` column (*HINT: look at `lubridate` functions like `month()`*)
+-   Make a ggplot of the avg monthly temperature
+-   Make a ggplot of the daily average temperature for July (*HINT: try `yday()` function with some `summarize()` in `dplyr`*)
+
+**Solutions**
+
+| mon |  avg\_temp\_2m|  avg\_temp\_10m|  avg\_temp\_tower|
+|:----|--------------:|---------------:|-----------------:|
+| Jan |           6.29|            6.72|              7.23|
+| Feb |           4.18|            4.48|              4.74|
+| Mar |           4.87|            5.06|              5.34|
+| Apr |           5.70|            5.72|              5.89|
+| May |           6.95|            7.07|              7.13|
+| Jun |           7.51|            7.40|              7.46|
+| Jul |           9.56|            8.96|              8.84|
+| Aug |           9.36|            8.85|              8.81|
+| Sep |           8.43|            8.27|              8.38|
+| Oct |           7.79|            7.60|              7.81|
+| Nov |           8.19|            8.40|              8.71|
+| Dec |           7.77|            7.74|              8.17|
+
+![](R-timeseries_files/figure-markdown_github/solution-1.png)![](R-timeseries_files/figure-markdown_github/solution-2.png)![](R-timeseries_files/figure-markdown_github/solution-3.png)
+
+[1] For example Excel stores dates as a number representing days since 1900-Jan-0, plus a fractional portion of a 24 hour day (**serial-time**), but in OSX (Mac), it is 1904-Jan-0.

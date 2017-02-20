@@ -3,7 +3,8 @@ title: "R-timeseries"
 author: "Ryan Peek"
 date: "Updated: `r format(Sys.Date())`"
 output:
-  github_document
+  github_document:
+    toc: TRUE
 ---
 
 ```{r setup, include=FALSE}
@@ -30,7 +31,7 @@ Importantly, there are **3** basic time classes in R:
  - POSIXct ("**ct**" == calendar time, best class for dates with times)
  - POSIXlt ("**lt**" == local time, enables easy extraction of specific components of a time, however, remember that POXIXlt objects are lists)
 
-So, for some brief examples/discussion about each of these classes, please read below. Unfortunately converting dates & times in R into formats that are computer readable can be frustrating, mainly because there is very little consistency. In particular, if you are importing things from Excel, keep in mind dates can get especially weird^[1], depending on the operating system you are working on, the format of your data, etc.
+So, for some brief examples/discussion about each of these classes, please read below. Unfortunately converting dates & times in R into formats that are computer readable can be frustrating, mainly because there is very little consistency. In particular, if you are importing things from Excel, keep in mind dates can get especially weird[^1], depending on the operating system you are working on, the format of your data, etc.
 
 [^1]: For example Excel stores dates as a number representing days since 1900-Jan-0, plus a fractional portion of a 24 hour day (**serial-time**), but in OSX (Mac), it is 1904-Jan-0.
  
@@ -112,9 +113,9 @@ The `chron` package may be helpful for these tasks, however, this may also be a 
  - `chron::as.chron("2013-07-24 23:55:26")` = `r chron::as.chron("2013-07-24 23:55:26")`
  - `chron::as.chron("07/25/13 08:32:07", "%m/%d/%y %H:%M:%S")` = `r chron::as.chron("07/25/13 08:32:07", "%m/%d/%y %H:%M:%S")`
 
-## Example & Challenge 1: Mauna Loa Meterological Data
+## Challenge 1: Mauna Loa Meterological Data
 
-So, now that we have a decent idea how to format these things, let's look at some real data, try to format and plot. Let's use the Mauna Loa meterological data, collected every minute for the year 2001. It's 459,769 observations for 9 different metrics of wind, humidity, barometric pressure, air temperature, and precipitation.
+So, now that we have a decent idea how to format these things, let's look at some real data, try to format and plot. Let's use the Mauna Loa meterological data, collected every minute for the year 2001. *This dataset has 459,769 observations for 9 different metrics of wind, humidity, barometric pressure, air temperature, and precipitation.*
 
 ```{r mloa_data, eval=T, echo=T}
 
@@ -140,25 +141,96 @@ One of the important components to consider is each of the datetime columns has 
 # we need to make a datetime column...let's use paste
 mloa_2001$datetime <- paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min) # this makes a character column
 
+head(mloa_2001$datetime) # character vector but not POSIXct yet
+
 # we can nest this within a lubridate function to convert directly to POSIXct
-mloa_2001$datetime <- ymd_hm(paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min))
+mloa_2001$datetime <- ymd_hm(paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min), tz = "Pacific/Honolulu")
 
 summary(mloa_2001) # notice a new column called "datetime"
+head(mloa_2001$datetime) # in POSIXct
 
 ```
 
-```{r clean up data and plot March}
+### Challenge 
 
+ - Remove the NA's (-99 and -999) in `rel_humid`, `temp_C_2m`, `windSpeed_m_s`
+ - Use `dplyr` to calculate the mean monthly temperature (`temp_C_2m`) using the `datetime` column (*HINT: look at `lubridate` functions like `month()`*)
+ - Make a ggplot of the avg monthly temperature 
+ - Make a ggplot of the daily average temperature for July (*HINT: try `yday()` function with some `summarize()` in `dplyr`*)
+
+
+**Solutions**
+
+```{r solution, eval=T, echo=F}
+library(dplyr)
 library(ggplot2)
+library(lubridate)
 
 # clean up the NA data (NA's are = -99 or -999 depending on data col)
-mloa_2001 %>% 
+df <- mloa_2001 %>% 
   filter(!rel_humid == -99, 
-         !temp_C_2m == -999,
-         !windSpeed_m_s == -99.9,
-         month==3) %>% 
-  ggplot(.) + 
-  geom_point(aes(x=datetime, y=rel_humid, color=temp_C_2m), alpha=0.5) + 
-  viridis::scale_color_viridis() + ylim(0, 100)
+         !temp_C_2m == -999.9,
+         !temp_C_10m == -999.9,
+         !temp_C_towertop == -999.9,
+         !windSpeed_m_s == -99.9) %>% 
+  mutate(mon=month(datetime, label = TRUE, abbr=TRUE),
+         jday=yday(datetime))
 
+df %>% 
+  group_by(mon) %>% 
+  summarize(avg_temp_2m = mean(temp_C_2m),
+            avg_temp_10m = mean(temp_C_10m),
+            avg_temp_tower = mean(temp_C_towertop)) %>% 
+  knitr::kable(digits = 2)
+
+
+df %>% 
+  group_by(mon) %>% 
+  summarize(avg_temp_2m = mean(temp_C_2m),
+            avg_temp_10m = mean(temp_C_10m),
+            avg_temp_tower = mean(temp_C_towertop)) %>% 
+  ggplot() + geom_point(aes(x=mon, y=avg_temp_2m), color="darkblue")+
+  geom_point(aes(x=mon, y=avg_temp_10m), color="maroon") + 
+  geom_point(aes(x=mon, y=avg_temp_tower), color="forestgreen") +
+  ylab("Avg Monthly Temperature (C)") + xlab("Month")
+
+
+# or with legend
+# use viridis color palette 
+library(viridis)
+#viridis(4) # "#440154FF" "#21908CFF" "#FDE725FF"
+cols1 <- c("Temp-2m"="#440154FF", "Temp-10m" = "#35B779FF", "Temp-Towertop" = "#31688EFF")
+
+df %>% 
+  group_by(mon) %>% 
+  summarize(avg_temp_2m = mean(temp_C_2m),
+            avg_temp_10m = mean(temp_C_10m),
+            avg_temp_tower = mean(temp_C_towertop)) %>% 
+  ggplot() + geom_point(aes(x=mon, y=avg_temp_2m, fill="Temp-2m"), size=5, pch=21)+
+  geom_point(aes(x=mon, y=avg_temp_10m, fill="Temp-10m"), size=5, pch=21) + 
+  geom_point(aes(x=mon, y=avg_temp_tower, fill="Temp-Towertop"), size=5, pch=21) +
+  ylab("2001 Avg Monthly Temperature (C)") + xlab("Month") + 
+  scale_fill_manual(name="Temperature (C)",values=cols1) + 
+  theme(legend.position = "bottom")
+  
+
+# avg daily for july 
+df %>% filter(mon=="Jul") %>% # or month==7
+  group_by(day) %>% 
+  summarize(avg_temp_2m = mean(temp_C_2m),
+            avg_temp_10m = mean(temp_C_10m),
+            avg_temp_tower = mean(temp_C_towertop)) %>% 
+  ggplot() + 
+  geom_line(aes(x=day, y=avg_temp_2m, color="Temp-2m"), lty=4)+
+  geom_line(aes(x=day, y=avg_temp_10m, color="Temp-10m"), lty=2) + 
+  geom_line(aes(x=day, y=avg_temp_tower, color="Temp-Towertop"), lty=1) + 
+  geom_point(aes(x=day, y=avg_temp_2m, fill="Temp-2m"), size=3, pch=21, alpha=0.5)+
+  geom_point(aes(x=day, y=avg_temp_10m, fill="Temp-10m"), size=3, pch=21, alpha=0.5) + 
+  geom_point(aes(x=day, y=avg_temp_tower, fill="Temp-Towertop"), size=3, pch=21, alpha=0.5) +
+  ylab("2001 Avg Daily Temperature (C)") + xlab("July Day") + 
+  scale_fill_manual(name="Temperature (C)",values=cols1) + 
+  scale_color_manual(name="Temperature (C)",values=cols1) + 
+  theme(legend.position = "bottom")
+  
+  
 ```
