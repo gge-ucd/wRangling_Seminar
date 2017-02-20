@@ -269,7 +269,7 @@ head(mloa_2001$datetime) # in POSIXct
 Challenge 2: Pressure Transducer (Solinst) Data Logger
 ------------------------------------------------------
 
-Let's practice with another data file, a logger that records water temperature and river stage every 15 minutes from the NF American River. You can [download the file](wRangling_Seminar/data/2015_NFA_solinst_08_05.csv) or read the file in directly from the [webpage](https://raw.githubusercontent.com/gge-ucd/wRangling_Seminar/master/data/2015_NFA_solinst_08_05.csv), we've practiced both now.
+Let's practice with another data file, a logger that records water temperature and river stage every 15 minutes from the NF American River. You can download the file by right clicking on the [webpage](https://raw.githubusercontent.com/gge-ucd/wRangling_Seminar/master/data/2015_NFA_solinst_08_05.csv), or simply use the web URL. We've practiced both now.
 
 *This dataset has 35,038 observations for water temperature, and stage (pressure transducer info).*
 
