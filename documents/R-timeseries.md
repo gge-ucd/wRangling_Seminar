@@ -11,7 +11,9 @@ Updated: 2017-02-20
         -   [The `lubridate` package & datetimes](#the-lubridate-package-datetimes)
     -   [Datetimes without Timezones (and `chron`)](#datetimes-without-timezones-and-chron)
     -   [Challenge 1: Mauna Loa Meterological Data](#challenge-1-mauna-loa-meterological-data)
-        -   [Challenge](#challenge)
+        -   [Challenge 1](#challenge-1)
+    -   [Challenge 2: Pressure Transducer (Solinst) Data Logger](#challenge-2-pressure-transducer-solinst-data-logger)
+        -   [Challenge 2](#challenge-2)
 
 Background Reading
 ==================
@@ -238,7 +240,7 @@ head(mloa_2001$datetime) # in POSIXct
     ## [3] "2001-01-01 00:02:00 HST" "2001-01-01 00:03:00 HST"
     ## [5] "2001-01-01 00:04:00 HST" "2001-01-01 00:05:00 HST"
 
-### Challenge
+### Challenge 1
 
 -   Remove the NA's (-99 and -999) in `rel_humid`, `temp_C_2m`, `windSpeed_m_s`
 -   Use `dplyr` to calculate the mean monthly temperature (`temp_C_2m`) using the `datetime` column (*HINT: look at `lubridate` functions like `month()`*)
@@ -263,5 +265,59 @@ head(mloa_2001$datetime) # in POSIXct
 | Dec |           7.77|            7.74|              8.17|
 
 ![](R-timeseries_files/figure-markdown_github/solution-1.png)![](R-timeseries_files/figure-markdown_github/solution-2.png)![](R-timeseries_files/figure-markdown_github/solution-3.png)
+
+Challenge 2: Pressure Transducer (Solinst) Data Logger
+------------------------------------------------------
+
+Let's practice with another data file, a logger that records water temperature and river stage every 15 minutes from the NF American River. You can [download the file](data/2015_NFA_solinst_08_05.csv) or read the file in (directly from the webpage)\[<https://raw.githubusercontent.com/gge-ucd/wRangling_Seminar/master/data/2015_NFA_solinst_08_05.csv>\], we've practiced both now.
+
+*This dataset has 35,038 observations for water temperature, and stage (pressure transducer info).*
+
+> First part of the challenge: Read in and assign the data to your environment using either the direct webpage URL, or the downloaded file.
+
+    ##          Date             Time             ms        Level       
+    ##  2014/08/06:   96   00:00:00:  365   Min.   :0   Min.   :0.7718  
+    ##  2014/08/07:   96   00:15:00:  365   1st Qu.:0   1st Qu.:1.1190  
+    ##  2014/08/08:   96   00:30:00:  365   Median :0   Median :1.3135  
+    ##  2014/08/09:   96   00:45:00:  365   Mean   :0   Mean   :1.3791  
+    ##  2014/08/10:   96   01:00:00:  365   3rd Qu.:0   3rd Qu.:1.5235  
+    ##  2014/08/11:   96   01:15:00:  365   Max.   :0   Max.   :4.7376  
+    ##  (Other)   :34462   (Other) :32848                               
+    ##   Temperature    
+    ##  Min.   : 1.724  
+    ##  1st Qu.: 8.197  
+    ##  Median :13.258  
+    ##  Mean   :14.291  
+    ##  3rd Qu.:20.960  
+    ##  Max.   :28.748  
+    ## 
+
+    ## [1] "Date"        "Time"        "ms"          "Level"       "Temperature"
+
+### Challenge 2
+
+-   Make a `datetime` column and format as `POSIXct`
+-   Calculate Weekly **Mean, Max, Min** Water Temperatures and plot as point or line plot *(HINT: `dplyr` function)*
+-   Calculate Hourly mean **Level** for April through June and make a line plot (using `ggplot2`).
+-   Make a ggplot geom\_pointrange plot of the avg. max, min monthly temperatures.
+
+**Solutions**
+
+    ##         Date     Time ms  Level Temperature            datetime   yr mon
+    ## 1 2014/08/05 11:00:00  0 0.8245      23.069 2014-08-05 11:00:00 2014   8
+    ## 2 2014/08/05 11:15:00  0 1.1457      22.023 2014-08-05 11:15:00 2014   8
+    ## 3 2014/08/05 11:30:00  0 1.1485      22.030 2014-08-05 11:30:00 2014   8
+    ## 4 2014/08/05 11:45:00  0 1.1482      22.035 2014-08-05 11:45:00 2014   8
+    ## 5 2014/08/05 12:00:00  0 1.1504      22.033 2014-08-05 12:00:00 2014   8
+    ## 6 2014/08/05 12:15:00  0 1.1495      22.028 2014-08-05 12:15:00 2014   8
+    ##   wk DOY hr
+    ## 1 31 217 11
+    ## 2 31 217 11
+    ## 3 31 217 11
+    ## 4 31 217 11
+    ## 5 31 217 12
+    ## 6 31 217 12
+
+![](R-timeseries_files/figure-markdown_github/solution2-1.png)![](R-timeseries_files/figure-markdown_github/solution2-2.png)![](R-timeseries_files/figure-markdown_github/solution2-3.png)
 
 [1] For example Excel stores dates as a number representing days since 1900-Jan-0, plus a fractional portion of a 24 hour day (**serial-time**), but in OSX (Mac), it is 1904-Jan-0.
