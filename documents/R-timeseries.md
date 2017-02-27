@@ -126,6 +126,10 @@ So, now that we have a decent idea how to format these things, let's look at som
 ``` r
 # let's load our climate data from our previous lesson:
 
+# rds
+mloa <- readRDS("data_output/mauna_loa_met_2001_minute.rds")
+
+# rda
 load("data_output/mauna_loa_met_2001_minute.rda")
 
 library(lubridate, warn.conflicts = F)
@@ -191,6 +195,9 @@ head(mloa_2001$datetime) # character vector but not POSIXct yet
 
 ``` r
 # we can nest this within a lubridate function to convert directly to POSIXct
+mloa_2001$datetime <- ymd_hm(mloa_2001$datetime, tz="Pacific/Honolulu")
+
+# all in one step
 mloa_2001$datetime <- ymd_hm(paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min), tz = "Pacific/Honolulu")
 
 summary(mloa_2001) # notice a new column called "datetime"
@@ -264,7 +271,25 @@ head(mloa_2001$datetime) # in POSIXct
 | Nov |           8.19|            8.40|              8.71|
 | Dec |           7.77|            7.74|              8.17|
 
-![](R-timeseries_files/figure-markdown_github/solution-1.png)![](R-timeseries_files/figure-markdown_github/solution-2.png)![](R-timeseries_files/figure-markdown_github/solution-3.png)
+![](R-timeseries_files/figure-markdown_github/solution-1.png)![](R-timeseries_files/figure-markdown_github/solution-2.png)
+
+    ## Observations: 23
+    ## Variables: 4
+    ## $ day            <int> 1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, ...
+    ## $ avg_temp_2m    <dbl> 7.129730, 13.271782, 11.039383, 10.856874, 11.5...
+    ## $ avg_temp_10m   <dbl> 6.594595, 11.164356, 11.024387, 10.486253, 11.0...
+    ## $ avg_temp_tower <dbl> 6.364865, 9.789604, 10.967694, 10.474180, 10.96...
+
+![](R-timeseries_files/figure-markdown_github/solution-3.png)
+
+    ## Observations: 24
+    ## Variables: 4
+    ## $ hour(datetime) <int> 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1...
+    ## $ avg_temp_2m    <dbl> 12.279380, 12.021068, 11.643950, 11.213201, 10....
+    ## $ avg_temp_10m   <dbl> 10.071898, 10.001907, 9.858428, 9.821122, 9.714...
+    ## $ avg_temp_tower <dbl> 9.136405, 9.162726, 9.165874, 9.267327, 9.32710...
+
+![](R-timeseries_files/figure-markdown_github/solution-4.png)
 
 Challenge 2: Pressure Transducer (Solinst) Data Logger
 ------------------------------------------------------
