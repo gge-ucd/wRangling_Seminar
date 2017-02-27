@@ -1,7 +1,7 @@
 R-timeseries
 ================
 Ryan Peek
-Updated: 2017-02-20
+Updated: 2017-02-27
 
 -   [Background Reading](#background-reading)
 -   [Dates & Times in R](#dates-times-in-r)

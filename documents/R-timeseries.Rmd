@@ -2,6 +2,7 @@
 title: "R-timeseries"
 author: "Ryan Peek"
 date: "Updated: `r format(Sys.Date())`"
+always_allow_html: yes
 output:
   github_document:
     toc: TRUE
@@ -121,6 +122,10 @@ So, now that we have a decent idea how to format these things, let's look at som
 
 # let's load our climate data from our previous lesson:
 
+# rds
+mloa <- readRDS("data_output/mauna_loa_met_2001_minute.rds")
+
+# rda
 load("data_output/mauna_loa_met_2001_minute.rda")
 
 library(lubridate, warn.conflicts = F)
@@ -144,6 +149,9 @@ mloa_2001$datetime <- paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001
 head(mloa_2001$datetime) # character vector but not POSIXct yet
 
 # we can nest this within a lubridate function to convert directly to POSIXct
+mloa_2001$datetime <- ymd_hm(mloa_2001$datetime, tz="Pacific/Honolulu")
+
+# all in one step
 mloa_2001$datetime <- ymd_hm(paste0(mloa_2001$year,"-", mloa_2001$month, "-", mloa_2001$day," ", mloa_2001$hour24, ":", mloa_2001$min), tz = "Pacific/Honolulu")
 
 summary(mloa_2001) # notice a new column called "datetime"
@@ -157,7 +165,6 @@ head(mloa_2001$datetime) # in POSIXct
  - Use `dplyr` to calculate the mean monthly temperature (`temp_C_2m`) using the `datetime` column (*HINT: look at `lubridate` functions like `month()`*)
  - Make a ggplot of the avg monthly temperature 
  - Make a ggplot of the daily average temperature for July (*HINT: try `yday()` function with some `summarize()` in `dplyr`*)
-
 
 **Solutions**
 
@@ -182,7 +189,6 @@ df %>%
             avg_temp_10m = mean(temp_C_10m),
             avg_temp_tower = mean(temp_C_towertop)) %>% 
   knitr::kable(digits = 2)
-
 
 df %>% 
   group_by(mon) %>% 
@@ -210,16 +216,19 @@ df %>%
   geom_point(aes(x=mon, y=avg_temp_10m, fill="Temp-10m"), size=5, pch=21) + 
   geom_point(aes(x=mon, y=avg_temp_tower, fill="Temp-Towertop"), size=5, pch=21) +
   ylab("2001 Avg Monthly Temperature (C)") + xlab("Month") + 
-  scale_fill_manual(name="Temperature (C)",values=cols1) + 
+  scale_fill_manual(name="Temperature (C)",values=cols1) +
   theme(legend.position = "bottom")
   
+library(magrittr) # for the %T>% pipe...the "tee"
 
 # avg daily for july 
 df %>% filter(mon=="Jul") %>% # or month==7
   group_by(day) %>% 
   summarize(avg_temp_2m = mean(temp_C_2m),
             avg_temp_10m = mean(temp_C_10m),
-            avg_temp_tower = mean(temp_C_towertop)) %>% 
+            avg_temp_tower = mean(temp_C_towertop)) %T>%
+  # anything after the %T>% is a sidebar
+  glimpse() %>% # picks data back up from before %T>%
   ggplot() + 
   geom_line(aes(x=day, y=avg_temp_2m, color="Temp-2m"), lty=4)+
   geom_line(aes(x=day, y=avg_temp_10m, color="Temp-10m"), lty=2) + 
@@ -227,14 +236,33 @@ df %>% filter(mon=="Jul") %>% # or month==7
   geom_point(aes(x=day, y=avg_temp_2m, fill="Temp-2m"), size=3, pch=21, alpha=0.5)+
   geom_point(aes(x=day, y=avg_temp_10m, fill="Temp-10m"), size=3, pch=21, alpha=0.5) + 
   geom_point(aes(x=day, y=avg_temp_tower, fill="Temp-Towertop"), size=3, pch=21, alpha=0.5) +
-  ylab("2001 Avg Daily Temperature (C)") + xlab("July Day") + 
+  ylab("2001 Avg Daily Temperature (C)") + xlab("July day") + 
+  scale_fill_manual(name="Temperature (C)",values=cols1) + 
+  scale_color_manual(name="Temperature (C)",values=cols1) + 
+  theme(legend.position = "bottom")
+  
+
+# avg hourly for july 
+df %>% filter(mon=="Jul") %>% # or month==7
+  group_by(hour(datetime)) %>% 
+  summarize(avg_temp_2m = mean(temp_C_2m),
+            avg_temp_10m = mean(temp_C_10m),
+            avg_temp_tower = mean(temp_C_towertop)) %T>%
+  glimpse() %>% 
+  ggplot() + 
+  geom_line(aes(x=`hour(datetime)`, y=avg_temp_2m, color="Temp-2m"), lty=4)+
+  geom_line(aes(x=`hour(datetime)`, y=avg_temp_10m, color="Temp-10m"), lty=2) + 
+  geom_line(aes(x=`hour(datetime)`, y=avg_temp_tower, color="Temp-Towertop"), lty=1) + 
+  geom_point(aes(x=`hour(datetime)`, y=avg_temp_2m, fill="Temp-2m"), size=3, pch=21, alpha=0.5)+
+  geom_point(aes(x=`hour(datetime)`, y=avg_temp_10m, fill="Temp-10m"), size=3, pch=21, alpha=0.5) + 
+  geom_point(aes(x=`hour(datetime)`, y=avg_temp_tower, fill="Temp-Towertop"), size=3, pch=21, alpha=0.5) +
+  ylab("2001 Avg Daily Temperature (C)") + xlab("July Hour") + 
   scale_fill_manual(name="Temperature (C)",values=cols1) + 
   scale_color_manual(name="Temperature (C)",values=cols1) + 
   theme(legend.position = "bottom")
   
   
 ```
-
 
 ## Challenge 2: Pressure Transducer (Solinst) Data Logger 
 
@@ -313,8 +341,6 @@ dat %>%
   group_by(mon) %>% 
   summarise_each(funs(mean, max, min)) %>%  # apply functions to each column
   ggplot() + geom_pointrange(aes(x=mon, y=mean, ymax=max, ymin=min), fill="maroon", size=1, pch=21) + xlab("Avg Monthly Water Temperature: Months")
-
-
 
 ```
 
