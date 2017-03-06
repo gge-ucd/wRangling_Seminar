@@ -1,0 +1,340 @@
+---
+title: "Spatial Data & R"
+author: "Ryan Peek"
+date: "Updated: `r format(Sys.Date())`"
+output:
+  github_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+## Libraries Required:
+
+Let's look at the libraries we'll need for this lesson.
+```{r libraries}
+
+library(rgdal)  # for vector work; sp package will load with rgdal
+library(raster) # for metadata/attributes- vectors or rasters
+library(rasterVis)
+library(leaflet) # interactive maps
+library(readr) # reading stuff
+library(dplyr) # doing stuff
+library(viridis) # color palettes
+```
+
+## Coordinate Reference Systems (CRS)
+
+How to “flatten” or project the spatial data in geographic space. Often called projection, this can be a tricky business if you don't know or have a specific projection/CRS for your data, or when trying to mix two different CRS at once.
+
+Best is to use some standards, and transform all projections into the same CRS before you work/plot your data.
+
+Check this for more:
+ - CRS Projections: http://spatialreference.org/ref/epsg/
+ - Choosing the Right Projection: https://source.opennews.org/articles/choosing-right-map-projection/
+
+```{r CRS projections}
+
+# set strings for UTMs and lats for commonly used projections (WGS84)
+utms <- CRS("+init=epsg:32610") ## more detailed def using the EPSG code
+lats <-CRS("+init=epsg:4326") # set the default for lat/longs, plays well with leaflet and google
+```
+
+## Get NEON Data
+
+First we went and downloaded the [NEON Shapefile](https://ndownloader.figshare.com/files/3708751) data, which downloads as a *.zip* file. You'll need to double click on that file to unzip it (if on Mac), or try right clicking on the zip file and look for an unzip option. Make note of *where* the unzipped folder ends up. In my case I made a **`GIS`** folder and then unzipped it there. 
+
+### RASTER Data
+
+```{r raster}
+
+DSM_HARV <- raster("data/GIS/NEON-DS-Airborne-Remote-Sensing/HARV/DSM/HARV_dsmCrop.tif")
+DSM_HARV # view the data
+plot(DSM_HARV, 
+     main="NEON Digital Surface Model\nHarvard Forest")
+
+crs(DSM_HARV)
+
+# assign crs to an object (class) to use for reprojection and other tasks
+myCRS <- crs(DSM_HARV)
+myCRS
+
+minValue(DSM_HARV)
+maxValue(DSM_HARV)
+
+
+hist(DSM_HARV,
+     main="Distribution of Digital Surface Model Values\n Histogram Default: 100,000 pixels\n NEON Harvard Forest",
+     xlab="DSM Elevation Value (m)",
+     ylab="Frequency",
+     col="wheat")
+
+# notice warning...just telling us there were a lot of pixels not plotted
+ncell(DSM_HARV)
+
+# create histogram that includes with all pixel values in the raster
+hist(DSM_HARV, 
+     maxpixels=ncell(DSM_HARV),
+     main="Distribution of DSM Values\n All Pixel Values Included\n NEON Harvard Forest Field Site",
+     xlab="DSM Elevation Value (m)",
+     ylab="Frequency",
+     col="wheat4")
+nlayers(DSM_HARV) # number of bands or layers
+GDALinfo("data/GIS/NEON-DS-Airborne-Remote-Sensing/HARV/DSM/HARV_dsmCrop.tif")
+
+```
+
+### VECTOR Data
+
+```{r load shapefile}
+
+aoiBoundary_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                            layer = "HarClip_UTMZ18")
+crs(aoiBoundary_HARV)
+extent(aoiBoundary_HARV)
+
+lats # notice the differences
+utms # notice the differences?
+
+# access things in a spatial_BLANK_Dataframe with object_name@data
+```
+
+
+```{r quick plot}
+plot(aoiBoundary_HARV, col="cyan1", border="black", lwd=3,
+     main="AOI Boundary Plot")
+
+```
+
+#### CHALLENGE 1: Import More Data!
+
+ - Get `HARV_roads` and `HARVtower_UTM18N` layers into R. Call the `Harv_roads` object **`lines_HARV`** and the `HARVtower_UTM18N` `**point_HARV**`.
+
+```{r Challenge1, echo=F, eval=T}
+
+aoiBoundary_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                            layer = "HarClip_UTMZ18")
+
+lines_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                            layer = "HARV_roads")
+
+point_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                      layer = "HARVtower_UTM18N")
+
+
+plot(aoiBoundary_HARV, col = "lightgreen", 
+     main="NEON Harvard Forest\nField Site", new=TRUE)
+
+plot(lines_HARV, add = TRUE)
+
+# use the pch element to adjust the symbology of the points
+plot(point_HARV, add  = TRUE, pch = 21, bg = "purple", cex=1.5)
+
+```
+
+#### CHALLENGE 2: Mix Vectors and Rasters
+
+```{r Challenge2, echo=F, eval=T}
+
+Crop_HARV <- raster("data/GIS/NEON-DS-Airborne-Remote-Sensing/HARV/CHM/HARV_chmCrop.tif")
+
+aoiBoundary_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                            layer = "HarClip_UTMZ18")
+
+lines_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                            layer = "HARV_roads")
+
+point_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
+                      layer = "HARVtower_UTM18N")
+
+# layer the plot together
+plot(Crop_HARV, 
+     main="Map of Harvard Forest Field Site\nStudy Area with Canopy Height Model (NEON)")
+
+plot(aoiBoundary_HARV, col = "forestgreen", lwd=2,
+     main="NEON Harvard Forest\nField Site", add=TRUE)
+
+plot(lines_HARV, add = TRUE)
+
+# use the pch element to adjust the symbology of the points
+plot(point_HARV, add  = TRUE, pch = 21, bg = "purple", cex=1.2)
+
+```
+
+
+## Some other Tricks?
+
+These are newish packages that you might find useful for GIS analysis, mapping ,etc. 
+
+I'll talk about the `**leaflet**` package in particular, but there are many other spatial packages in R which may be useful.
+
+```{r Extra_packages, echo=TRUE, eval=FALSE}
+
+#devtools::install_github('walkerke/tigris')
+library(tigris)
+
+ua <- urban_areas(cb = TRUE) # Basic US urbanized areas data
+us_geo <- states(class = "sf") # simplified feature of STATES
+
+library(ggmap)
+library(ggvis)
+library(leaflet)
+library(ggsn) # for scale bars/north arrows in ggplots
+
+```
+
+## Your Data!
+
+Let's take a look at some of your stuff (thanks Ann and Tom!)
+
+```{r holmes}
+
+edna <- read_csv("data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
+
+# Check how many NA's in spatial data
+edna %>% filter(is.na(lat)) %>% tally # no NAs!
+
+# make the data "spatial":
+edna.SP <- SpatialPointsDataFrame(edna[, c("lon","lat")], edna)
+
+# check the CRS
+raster::crs(edna.SP) # should be NA
+proj4string(edna.SP) <- lats # assign the CRS we want to use
+raster::crs(edna.SP) # should be the full lats obj now
+
+# Transform to UTMs (or whatever)
+edna_utms.SP<-spTransform(edna.SP, utms)
+raster::crs(edna_utms.SP) # should be the full UTMs now
+
+# add UTMs as cols to dataframe?
+edna_utms.SP@data$utm_y <- edna_utms.SP@coords[,1]
+edna_utms.SP@data$utm_x <- edna_utms.SP@coords[,2]
+
+```
+
+```{r static plot}
+
+library(maps)
+library(mapdata)
+suppressPackageStartupMessages(library(ggmap)) # ggplot functionality for maps
+library(ggsn) # for scale bars/north arrows in ggplots
+
+# see what extent is for our shape/points
+extent(edna.SP)
+
+# Use this in xlim/ylim
+map("state",region=c('CA'), xlim = c(-122.3,-121.6), ylim=c(38,38.3))
+map.axes()
+map("county",region=c('CA'),boundary=FALSE,lty=3, add=TRUE)
+plot(edna.SP, add=TRUE,pch=21, bg="#FDE725FF")
+plot(edna.SP[edna.SP@data$tide_dir=="ebb",], add=TRUE,pch=16, cex=0.4, bg="#FDE725FF")
+
+
+legend("topright", legend = c("eDNA-flood", "eDNA-ebb"), 
+			 pt.bg = c("#FDE725FF"), col = "black", 
+			 pch = c(21))
+legend("topright", legend = c("eDNA-flood", "eDNA-ebb"), col = c(NA,"black"),
+			 pch = c(NA, 16), bty="n", pt.cex = 0.4)
+
+
+```
+
+
+```{r map w background}
+
+location=c(-121.95,38.1) # set the center of the map
+map1 <- get_map(location=location,crop = F,
+								color="bw",
+								maptype="terrain",
+								source="google",
+								zoom=10)
+
+sitemap <- ggmap(map1, extent = 'device') # use the BW terrain option
+sitemap
+
+library(ggrepel)
+nicemap<-
+	sitemap + 
+	labs(x="Longitude (WGS84)", y="Latitude") + 
+	geom_point(data=edna, aes(x=lon, y=lat), pch=21, size=2.4,
+	           color='black',
+	           fill="#2A788EFF", alpha=0.7) + 
+	# geom_label_repel(data=edna, aes(x=lon, y=lat, label=Station), 
+	# 					 nudge_y=0.01, size=3, fontface = "bold.italic", 
+	# 					 label.r=unit(0.10, "lines"))+
+	theme_bw()+
+	theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+nicemap
+
+```
+
+```{r leaflet map}
+
+library(leaflet)
+
+m <- leaflet() %>% addTiles() %>% 
+  setView(lng = -121.95, lat = 38.1, zoom = 8) %>%  # zoom 5 for all CA 
+  #addTiles(group = "OSM") %>%
+  addProviderTiles("Stamen.TopOSMFeatures", group = "OSM Features") %>%
+  addProviderTiles("Esri.WorldImagery", group = "ESRI Aerial") %>%
+  addProviderTiles("Esri.WorldTopoMap", group = "ESRI Topo") %>%
+	addProviderTiles("OpenStreetMap.BlackAndWhite", group = "B&W") %>%
+	addProviderTiles("Stamen.TonerLite", group = "StamenT1") %>%
+	addProviderTiles("Stamen.Watercolor", group = "StamenT2") %>%
+	#addProviderTiles("Thunderforest.Landscape", group = "Topo") %>%
+  hideGroup("OSM Features") %>% # busy layer so hide initially
+  
+	# other map layers:
+	# Stamen.Toner
+	# Stamen.TonerLite
+	# Stamen.Watercolor
+	
+  # eDNA sites 
+  addCircleMarkers(data=edna.SP, group="eDNA",
+  								 popup=paste0("Station: ", edna.SP@data$Station, "<br>",
+  								 						 "Month: ", edna.SP@data$collection_month, 
+  								 						 "<br>","Tide: ",edna.SP@data$tide_dir,
+  								 						 "<br>", "Trawl Type: ",edna.SP@data$trawl_type,
+  								 						 "<br>", "Turbidity: ", edna.SP@data$turb),
+                   stroke=TRUE, weight=0.6,radius=10,
+                   fillOpacity = 0.8, color="black",
+                   fillColor = "yellow") %>%
+
+    # eDNA from dataframe  
+  addCircleMarkers(data=edna.SP, group="eDNA_df",
+                   lng = ~lon, lat = ~lat, 
+                   radius = 6,
+  								 popup=paste0("Station: ", edna$Station, "<br>",
+  								 						 "Month: ", edna$collection_month, 
+  								 						 "<br>","Tide: ",edna$tide_dir,
+  								 						 "<br>", "Trawl Type: ",edna$trawl_type,
+  								 						 "<br>", "Turbidity: ", edna$turb),
+                   fillColor = ~ifelse(edna$tide_dir=="flood","darkblue", "red"),
+  								 stroke=TRUE, weight=0.6,
+                   fillOpacity = 0.8) %>%
+
+  hideGroup("eDNA_df") %>%
+		
+# add a legend for points
+  addLegend("bottomright", colors = c("darkblue", "red"),
+            labels=c("Flood", "Ebb"),
+            title = "Tidal Direction",
+            opacity = 0.7) %>%
+
+  # add controls for basemaps and data
+  addLayersControl(
+    baseGroups = c("OSM", "B&W", "StamenT1", "StamenT2", "ESRI Topo", "ESRI Aerial"),
+    overlayGroups = c("eDNA","eDNA_df", "OSM Features"),
+    options = layersControlOptions(collapsed = T))
+
+m
+
+# library(htmlwidgets)
+# saveWidget(widget = m, file="eDNA_site_map.html", selfcontained = FALSE)
+
+```
+

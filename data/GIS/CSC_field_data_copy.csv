@@ -1,0 +1,9 @@
+Collecting_Event,Month,Day,Year,Date,Sample,Location,Latitude,Longitude,Bottom_Depth_ft,Temp_C,Salinity _ppt,Salinity_speccond,Flourescence,Turbidity_FNU,DO,DO_perc
+19,10,8,2015,8Oct15,HAAS,Haas_Slough,38.29411,-121.72584,16.9,20.7,0.2,314.8,3.5,1.4,8.7,97.0
+1,6,8,2015,8June15,LBC1,Liberty_Cut,38.33005,-121.66745,10.8,25.0,0.1,271.9,5.5,49.1,6.8,82.0
+3,6,11,2015,11June15,LBC2,Liberty_Cut,38.33046,-121.66739,17.2,22.2,0.1,250.9,4.3,42.9,6.1,71.3
+2,6,8,2015,8June15,LIB1,Liberty_Island_Buoy,38.24607,-121.68267,7.5,23.5,0.1,199.1,2.6,7.2,9.7,113.6
+5,6,11,2015,11June15,LIB2,Liberty_Island_Buoy,38.24311,-121.68368,10.7,23.8,0.1,184.6,0.4,5.7,8.1,96.4
+4,6,11,2015,11June15,LHT,Little_Holland_Tract,38.29237,-121.66242,5.8,23.5,0.1,207.9,1.8,18.5,8.0,93.4
+18,10,6,2015,6Oct15,SHAG1,Shag_Slough,38.30761,-121.69300,22.0,19.2,0.2,419.4,3.8,2.0,8.1,91.0
+20,10,8,2015,8Oct15,SHAG2,Shag_Slough,38.30628,-121.69277,26.1,21.0,0.2,380.2,5.9,1.8,8.3,92.2
