@@ -52,15 +52,17 @@ First we went and downloaded the [NEON Shapefile](https://ndownloader.figshare.c
 ```{r raster}
 
 DSM_HARV <- raster("data/GIS/NEON-DS-Airborne-Remote-Sensing/HARV/DSM/HARV_dsmCrop.tif")
+
 DSM_HARV # view the data
+
 plot(DSM_HARV, 
      main="NEON Digital Surface Model\nHarvard Forest")
 
 crs(DSM_HARV)
 
 # assign crs to an object (class) to use for reprojection and other tasks
-myCRS <- crs(DSM_HARV)
-myCRS
+utmZ18 <- crs(DSM_HARV)
+utmZ18
 
 minValue(DSM_HARV)
 maxValue(DSM_HARV)
@@ -123,15 +125,42 @@ lines_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
 
 point_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
                       layer = "HARVtower_UTM18N")
+# a way to turn off graphics device (start from scratch)
+dev.off()
 
+# Layering the plot
 
 plot(aoiBoundary_HARV, col = "lightgreen", 
-     main="NEON Harvard Forest\nField Site", new=TRUE)
-
+     main="NEON Harvard Forest\nField Site")
 plot(lines_HARV, add = TRUE)
 
 # use the pch element to adjust the symbology of the points
-plot(point_HARV, add  = TRUE, pch = 21, bg = "purple", cex=1.5)
+plot(point_HARV, add  = TRUE, 
+     pch = 21, bg = "purple", cex=1.5)
+
+
+# check extent of lines
+extent(lines_HARV)
+#xmin        : 730741.2 
+#xmax        : 733295.5 
+#ymin        : 4711942 
+#ymax        : 4714260 
+
+extent(aoiBoundary_HARV)
+#xmin        : 732128 
+#xmax        : 732251.1 
+#ymin        : 4713209 
+#ymax        : 4713359 
+
+# change extent of boundaries using road layer
+plot(aoiBoundary_HARV, col = "lightgreen", 
+     main="NEON Harvard Forest\nField Site", xlim=c(730741.2,733295.5), ylim=c(4711942,4714260))
+
+plot(lines_HARV, add = TRUE) # road
+
+# use the pch element to adjust the symbology of the points
+plot(point_HARV, add  = TRUE, 
+     pch = 21, bg = "purple", cex=0.5)
 
 ```
 
@@ -191,6 +220,9 @@ library(ggsn) # for scale bars/north arrows in ggplots
 Let's take a look at some of your stuff (thanks Ann and Tom!)
 
 ```{r holmes}
+library(readr)
+
+edna <- read_csv(file ="https://raw.githubusercontent.com/gge-ucd/wRangling_Seminar/master/data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
 
 edna <- read_csv("data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
 
