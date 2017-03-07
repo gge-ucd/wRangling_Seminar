@@ -19,7 +19,6 @@ Let's look at the libraries we'll need for this lesson.
 
 library(rgdal)  # for vector work; sp package will load with rgdal
 library(raster) # for metadata/attributes- vectors or rasters
-library(rasterVis)
 library(leaflet) # interactive maps
 library(readr) # reading stuff
 library(dplyr) # doing stuff
@@ -84,8 +83,9 @@ hist(DSM_HARV,
      xlab="DSM Elevation Value (m)",
      ylab="Frequency",
      col="wheat4")
-nlayers(DSM_HARV) # number of bands or layers
-GDALinfo("data/GIS/NEON-DS-Airborne-Remote-Sensing/HARV/DSM/HARV_dsmCrop.tif")
+
+# nlayers(DSM_HARV) # number of bands or layers
+# GDALinfo("data/GIS/NEON-DS-Airborne-Remote-Sensing/HARV/DSM/HARV_dsmCrop.tif")
 
 ```
 
@@ -98,7 +98,7 @@ aoiBoundary_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
 crs(aoiBoundary_HARV)
 extent(aoiBoundary_HARV)
 
-lats # notice the differences
+lats # notice the differences?
 utms # notice the differences?
 
 # access things in a spatial_BLANK_Dataframe with object_name@data
@@ -117,6 +117,8 @@ plot(aoiBoundary_HARV, col="cyan1", border="black", lwd=3,
 
 ```{r Challenge1, echo=F, eval=T}
 
+aoiBoundary_HARV <- readOGR("data/GIS/NEON-DS-Site-Layout-Files/HARV/HarClip_UTMZ18.shp")
+
 aoiBoundary_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
                             layer = "HarClip_UTMZ18")
 
@@ -125,11 +127,11 @@ lines_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
 
 point_HARV <- readOGR(dsn = "data/GIS/NEON-DS-Site-Layout-Files/HARV",
                       layer = "HARVtower_UTM18N")
+
 # a way to turn off graphics device (start from scratch)
-dev.off()
+# dev.off()
 
 # Layering the plot
-
 plot(aoiBoundary_HARV, col = "lightgreen", 
      main="NEON Harvard Forest\nField Site")
 plot(lines_HARV, add = TRUE)
@@ -153,14 +155,14 @@ extent(aoiBoundary_HARV)
 #ymax        : 4713359 
 
 # change extent of boundaries using road layer
-plot(aoiBoundary_HARV, col = "lightgreen", 
-     main="NEON Harvard Forest\nField Site", xlim=c(730741.2,733295.5), ylim=c(4711942,4714260))
+# plot(aoiBoundary_HARV, col = "lightgreen",
+     # main="NEON Harvard Forest\nField Site", xlim=c(730741.2,733295.5), ylim=c(4711942,4714260))
 
-plot(lines_HARV, add = TRUE) # road
+# plot(lines_HARV, add = TRUE) # road
 
 # use the pch element to adjust the symbology of the points
-plot(point_HARV, add  = TRUE, 
-     pch = 21, bg = "purple", cex=0.5)
+# plot(point_HARV, add  = TRUE, 
+     # pch = 21, bg = "purple", cex=0.5)
 
 ```
 
@@ -193,7 +195,6 @@ plot(point_HARV, add  = TRUE, pch = 21, bg = "purple", cex=1.2)
 
 ```
 
-
 ## Some other Tricks?
 
 These are newish packages that you might find useful for GIS analysis, mapping ,etc. 
@@ -217,33 +218,85 @@ library(ggsn) # for scale bars/north arrows in ggplots
 
 ## Your Data!
 
-Let's take a look at some of your stuff (thanks Ann and Tom!)
+Let's take a look at some of your stuff (thanks Ann and Tom!).
 
-```{r holmes}
-library(readr)
+### Get CSV with XY data
 
-edna <- read_csv(file ="https://raw.githubusercontent.com/gge-ucd/wRangling_Seminar/master/data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
+```{r holmesData, eval=T, echo=T}
 
-edna <- read_csv("data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
+library(dplyr)
+library(rgdal)
+library(raster)
+
+# NOTE: I removed using the `readr` package here because it was causing problems when trying to 
+# write the shapefile later in this script. Use read.csv instead.
+
+# read straight from a URL
+edna <- read.csv(file ="https://raw.githubusercontent.com/gge-ucd/wRangling_Seminar/master/data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
+
+# edna <- read.csv("data/GIS/eDNA_stations_19Feb2017_fixedc.csv")
 
 # Check how many NA's in spatial data
 edna %>% filter(is.na(lat)) %>% tally # no NAs!
 
 # make the data "spatial":
-edna.SP <- SpatialPointsDataFrame(edna[, c("lon","lat")], edna)
+edna.SP <- SpatialPointsDataFrame(coords = edna[, c("lon","lat")], data = edna)
 
 # check the CRS
 raster::crs(edna.SP) # should be NA
+
+# add the projection:
+lats <-CRS("+init=epsg:4326") # set the default for lat/longs
+
 proj4string(edna.SP) <- lats # assign the CRS we want to use
+
 raster::crs(edna.SP) # should be the full lats obj now
 
 # Transform to UTMs (or whatever)
-edna_utms.SP<-spTransform(edna.SP, utms)
-raster::crs(edna_utms.SP) # should be the full UTMs now
+
+utms <- CRS("+init=epsg:32610") # zone 10 UTMs
+
+edna_utms.SP<-spTransform(x = edna.SP, CRSobj = utms)
+crs(edna_utms.SP) # should be the full UTMs now
 
 # add UTMs as cols to dataframe?
-edna_utms.SP@data$utm_y <- edna_utms.SP@coords[,1]
-edna_utms.SP@data$utm_x <- edna_utms.SP@coords[,2]
+edna.SP@data$utm_y <- edna_utms.SP@coords[,1]
+edna.SP@data$utm_x <- edna_utms.SP@coords[,2]
+```
+
+### Save Data as Shapefile, KML, CSV
+
+```{r savespatialData, eval=F, echo=T}
+
+# WRITING SHPs --------------------
+
+# unfortunately, ESRI (ArcGIS) has a 10 character limit on column names
+# in addition there can't be any special characters (including "-"). Underscores are ok.
+
+# so easiest workaround to ensure you know the shapefile will write is to shorten
+# your field names in advance (or change them as you need).
+
+# rename cols with > 10 characters so they'll be unique
+names(edna.SP)[1:3]<-c("coll_yr","coll_mon","coll_day")
+
+# shorten/trim all cols to 10 digits
+names(edna.SP) <- strtrim(names(edna.SP),10)
+
+writeOGR(edna.SP, dsn="data/GIS", layer="edna",  driver="ESRI Shapefile")
+
+# OPENING A SHP IN GOOGLE EARTH PRO -------------------------
+
+# REALLY COOL INSIDE TIP: Download Google Earth Pro:
+# http://www.google.com/intl/en/earth/download/gep/agree.html
+# The license key once you download it is "GEPFREE"
+
+# You can open a shapefile in google earth pro, and all the attributes will pop up from your dataframe. 
+# You can then easily save this as a KML or KMZ file to share with other folks.
+
+# WRITING CSV FROM SPATIAL DATAFRAME ------------------------
+
+# just access the dataframe part of your spatial * dataframe:
+write_csv(edna.SP@data, path = "data/GIS/edna_sites.csv")
 
 ```
 
@@ -251,8 +304,8 @@ edna_utms.SP@data$utm_x <- edna_utms.SP@coords[,2]
 
 library(maps)
 library(mapdata)
-suppressPackageStartupMessages(library(ggmap)) # ggplot functionality for maps
-library(ggsn) # for scale bars/north arrows in ggplots
+library(ggmap) # ggplot functionality for maps
+#library(ggsn) # for scale bars/north arrows in ggplots
 
 # see what extent is for our shape/points
 extent(edna.SP)
@@ -261,24 +314,38 @@ extent(edna.SP)
 map("state",region=c('CA'), xlim = c(-122.3,-121.6), ylim=c(38,38.3))
 map.axes()
 map("county",region=c('CA'),boundary=FALSE,lty=3, add=TRUE)
-plot(edna.SP, add=TRUE,pch=21, bg="#FDE725FF")
-plot(edna.SP[edna.SP@data$tide_dir=="ebb",], add=TRUE,pch=16, cex=0.4, bg="#FDE725FF")
 
+# add the points
+plot(edna.SP, add=TRUE, pch=21, bg="#FDE725FF") # all points
 
+plot(edna.SP[edna.SP@data$tide_dir=="ebb",], add=TRUE,pch=16, cex=0.4, bg="#FDE725FF") # tide ebb points
+
+# add a legend
 legend("topright", legend = c("eDNA-flood", "eDNA-ebb"), 
 			 pt.bg = c("#FDE725FF"), col = "black", 
 			 pch = c(21))
+
 legend("topright", legend = c("eDNA-flood", "eDNA-ebb"), col = c(NA,"black"),
 			 pch = c(NA, 16), bty="n", pt.cex = 0.4)
-
 
 ```
 
 
+### Static Maps with Backgrounds
+
+Using the `ggmap` package allows you to add background layers to your maps.
+
+For a full example on how to do this, and how to add an inset to your map with legend and North arrows, check out something I wrote up a while back:
+
+ - https://ryanpeek.github.io/2016-09-28-static_maps_in_R/
+
 ```{r map w background}
 
+library(ggmap)
 location=c(-121.95,38.1) # set the center of the map
-map1 <- get_map(location=location,crop = F,
+
+# background
+map1 <- get_map(location=location, crop = F,
 								color="bw",
 								maptype="terrain",
 								source="google",
@@ -287,24 +354,40 @@ map1 <- get_map(location=location,crop = F,
 sitemap <- ggmap(map1, extent = 'device') # use the BW terrain option
 sitemap
 
-library(ggrepel)
+library(ggrepel) # to add labels to your plot
+# geom_label_repel() adds labels with nice white boxes
+# geom_text_repel() just adds text labels, no boxes
+
 nicemap<-
 	sitemap + 
 	labs(x="Longitude (WGS84)", y="Latitude") + 
 	geom_point(data=edna, aes(x=lon, y=lat), pch=21, size=2.4,
 	           color='black',
-	           fill="#2A788EFF", alpha=0.7) + 
-	# geom_label_repel(data=edna, aes(x=lon, y=lat, label=Station), 
-	# 					 nudge_y=0.01, size=3, fontface = "bold.italic", 
+	           fill="#2A788EFF", alpha=0.9) + 
+	# geom_label_repel(data=edna, 
+	#                  aes(x=lon, y=lat, label=Station),
+	# 					 nudge_y=0.01, size=3, fontface = "bold.italic",
 	# 					 label.r=unit(0.10, "lines"))+
 	theme_bw()+
 	theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
 
 nicemap
 
+
+# save your map:
+#ggsave(filename = "documents/edna_site_map.pdf", width = 6, height = 6, units = "in", dpi = 300)
+
 ```
 
-```{r leaflet map}
+
+
+### Leaflet
+
+Check out the interactive power of leaflet maps. They are great, fun to play with, and a great way to share data.
+
+ - Leaflet in R: https://rstudio.github.io/leaflet/
+
+```{r leaflet map, eval=T, echo=T}
 
 library(leaflet)
 
@@ -338,7 +421,7 @@ m <- leaflet() %>% addTiles() %>%
 
     # eDNA from dataframe  
   addCircleMarkers(data=edna.SP, group="eDNA_df",
-                   lng = ~lon, lat = ~lat, 
+                   lng = ~lon, lat = ~lat,  # has to be decimal degrees WGS84
                    radius = 6,
   								 popup=paste0("Station: ", edna$Station, "<br>",
   								 						 "Month: ", edna$collection_month, 
@@ -365,8 +448,13 @@ m <- leaflet() %>% addTiles() %>%
 
 m
 
-# library(htmlwidgets)
-# saveWidget(widget = m, file="eDNA_site_map.html", selfcontained = FALSE)
-
 ```
+
+When you want to save this leaflet map and share it, you'll need the **`htmlwidgets`** package. Bear in mind when you save these maps (particularly with lots of points or layers) as `.html`, they can be quite large in size (i.e., >10-100sMBs). 
+
+```{r saveLeafletMap, echo=T, eval=F}
+library(htmlwidgets)
+saveWidget(widget = m, file="documents/eDNA_site_map.html", selfcontained = FALSE)
+```
+
 
