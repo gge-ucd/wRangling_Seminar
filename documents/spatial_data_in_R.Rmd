@@ -300,6 +300,10 @@ write_csv(edna.SP@data, path = "data/GIS/edna_sites.csv")
 
 ```
 
+### Make a Static Plot
+
+Notice the layering going on in the legend, the example is a bit of a complicated one, but it hopefully demonstrates how to make a detailed legend and format it in whatever way you'd like.
+
 ```{r static plot}
 
 library(maps)
