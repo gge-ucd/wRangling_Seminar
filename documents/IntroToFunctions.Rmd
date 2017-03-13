@@ -1,0 +1,250 @@
+---
+title: "Intro To Functions"
+author: "Myfanwy Johnston"
+date: "3/13/2017"
+output:
+  github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Functions in R
+
+These materials are taken mostly from the Software Carpentry Lesson on Creating Functions, and From Wickham's Advanced R Book.
+
+R is a functional programming language.  You can do anything with functions that you can do with vectors: you can assign them to variables, store them in lists, pass them as arguments to other functions, create them inside functions, and even return them as the result of a function.
+
+The key to understanding/practicing writing functions is to start small and simple, then build up, often through nesting functions.
+
+
+# Rstudio function shortcut
+
+Rstudio provides a shortcut for a skeleton function: type 'fun' and hit tab, and you get:
+```{r}
+
+
+
+```
+
+Usually the skeleton provides what you need for every function: a name, arguments (to which you will provide variables for the function to evaluate), and brackets that will contain the body of the function.  What the skeleton doesn't provide is the call to the return() function, which you will probably need to include yourself if you want the function to return a value or values that you can see or store.
+
+Let's fill in that skeleton with our first function:
+```{r}
+
+# our first function: convert a temperature from fahrenheit to kelvin:
+fahr_to_kelvin <- function(temp) {
+  kelvin <- ((temp - 32) * (5 / 9)) + 273.15
+  return(kelvin)
+}
+
+# and call it:
+# what is the freezing point of water in Kelvin?
+fahr_to_kelvin(32)
+
+# boiling point of water?
+fahr_to_kelvin(212)
+
+# we can store the output of our function to an object:
+
+kelvin100 <- fahr_to_kelvin(100)
+kelvin100
+
+# and we can pass numeric vectors to it:
+kelvinvector <-fahr_to_kelvin(1:10)
+kelvinvector
+
+# or use it to store new values in a dataframe:
+temp <- get("pressure")
+temp
+temp$kelv <- fahr_to_kelvin(temp$temperature)
+temp
+
+```
+
+## Composing/Nesting Functions:
+
+We want to write a little set of functions that convert temperatures from different scales.  We already have the fahr to kelvin one, what about kelvin to celcius?
+
+```{r pressure, echo=FALSE}
+kelvin_to_celsius <- function(temp) {
+  celsius <- temp - 273.15
+  return(celsius)
+}
+
+#absolute zero in Celsius
+kelvin_to_celsius(0)
+```
+
+...or fahrenheit to celcius?  We have the building blocks for this (fahr -> kelvin -> celcius), so let's put it all together:
+
+```{r}
+# we'll write a function that calls our other function inside of it:
+
+fahr_to_celsius <- function(temp) {
+  temp_k <- fahr_to_kelvin(temp)
+  result <- kelvin_to_celsius(temp_k)
+  return(result)
+}
+
+# freezing point of water in Celsius
+fahr_to_celsius(32.0)
+
+```
+
+We went through writing a separate function, above, to show you how functions can call other functions within their internals.  But a more parsimonious way to do this is to chain function calls:
+
+```{r}
+# freezing point of water in Celsius
+kelvin_to_celsius(fahr_to_kelvin(32.0))
+
+# we do this all the time in scripting. For example:
+
+length(unique(iris$Species))
+
+```
+
+# Practice:
+
+1.  Write a function called `fence` that takes two vectors as arguments, called original and wrapper`, and returns a new vector that has the wrapper vector at the beginning and end of the original.
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+fence <- function(original, wrapper) {
+  wrapped <- c(wrapper, original, wrapper)
+  return(wrapped)
+}
+
+fence("Oh hi", "hmmm")
+
+```
+
+2.  Write a function called `outside` that returns a vector made up of just the first and last elements of its input.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+outside <- function(vector) {
+  ans = c(vector[1],
+          vector[length(vector)])
+  return(ans)
+}
+
+test <- 1:10
+outside(test)
+test2 <- letters
+outside(letters)
+```
+
+# The Call Stack and Scoping
+
+For a deeper understanding of how functions work, you’ll need to learn how they create their own environments and point to variables created by other functions. Calls to functions are managed via the call stack.  The call stack is the organization system that R uses to make sure that every variable in the R environment points to what it's supposed to at any given time.  Your R session environment has its own stack frame (environment), a one-to-one relationship you can see in the Environment panel in RStudio.  Whenever a function is called, R creates a new stack frame (environment) on top of the base environment to keep that function's variables separate from those defined by other functions.  That function's environment disappears when the function is done running, and its output gets added to the base environment.
+
+The call stack can be better understood through something called scoping, which is like an order of operations for how R looks for named objects in its environment:
+
+
+```{r}
+input1 = 20 # we create an object in our environment called input1
+
+# we write a function that has an argument also called input1:
+mySum <- function(input1, input2 = 10) {
+  output <- input1 + input2
+  return(output)
+}
+
+# what should we expect when we call mySum(input1 = 1, 3)?
+mySum(input1 = 1, input2 = 3)
+
+
+# Another scoping example:
+
+y <- 10
+
+# We create a function, f, that includes a definition of the variable y within it:
+f <- function(x) {
+       
+    y <- 2  # R will look to this value first when y is called by the function
+    y*2 + x
+}
+
+f(5)
+
+# and another function, g, which does not define y within its functional environment:
+g <- function(x) {
+     x*y # R will first look inside the function; finding nothing, it will look in the global environment and find y <- 10.  It will use this value.
+}
+
+g(5)
+
+# Now, let's re-write the function f so that it calls g within it:
+f <- function(x) {
+       
+    y <- 2  # R will look to this value first within the function f
+    y*2 + g(x) #...and will have to look outside to the global env when this one is called, so you'll get 2*2 + x*10
+}
+
+f(3)
+
+
+```
+# A note on default values for arguments:
+
+You can specify defaults for arguments, like we did above with `input2 = 10`.  When you call a function, arguments can be passed by matching based on name (i.e. `input2`), by position (R will assume the value in the second position is for `input2`), or by omitting them (in which case the default value, `10` is used).
+
+# Documenting Functions
+
+```{r}
+center <- function(data, desired) {
+  # return a new vector containing the original data centered around the
+  # desired value.
+  # Example: center(c(1, 2, 3), 0) => c(-1, 0, 1)
+  new_data <- (data - mean(data)) + desired
+  return(new_data)
+}
+
+center(data = c(0,0,0,0), desired = 5)
+```
+# Anonymous Functions
+
+If you choose not to give the function a name, you get an anonymous function.
+
+You use an anonymous function when it’s not worth the effort to give it a name:
+
+```{r}
+lapply(mtcars, function(x) length(unique(x)))
+Filter(function(x) !is.numeric(x), mtcars)
+```
+
+
+
+You can call anonymous functions with named arguments, but doing so is a good sign that your function needs a name.
+
+
+# What functions would you like to write?
+
