@@ -1,0 +1,128 @@
+---
+title: "real live scientist animals"
+author: "Ryan Peek"
+date: "Updated: `r format(Sys.Date())`"
+always_allow_html: yes
+output:
+  github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+## This is about Tweet Mining
+
+But this is really cool. Taken pretty much verbatim from this fantastic blog: http://www.masalmon.eu/2017/02/05/actuallivingscientists/
+
+Basically pull tweets based on a given hash tag, filter, and plot based on the most common animal folks mentioned.
+
+```{r gettweets, echo=TRUE, eval=FALSE}
+library("rtweet")
+library("dplyr", warn.conflicts = F)
+actual <- search_tweets(q = "#actuallivingscientist",
+                        include_rts = FALSE,
+                        n = 18000, type = "recent")
+save(actual, file = "data/tweet_actual_living_sci.rda")
+
+# no need for coordinates which are often missing
+actual <- select(actual, - coordinates)
+
+# only English
+actual <- filter(actual, lang == "en")
+
+# no answers
+actual <- filter(actual, is.na(in_reply_to_user_id))
+
+# save
+save(actual, file = "data/2017-02-07-actuallivingscientists.Rda")
+```
+
+
+```{r tidytweets, echo=TRUE, eval=TRUE}
+library("dplyr", warn.conflicts = F)
+load("data/2017-02-07-actuallivingscientists.Rda")
+
+head(actual)
+
+## Now ANIMALS
+
+library("rcorpora")
+head(corpora("animals/common")$animals)
+
+library("tidytext")
+actual <- tibble::as_tibble(actual)
+tidy_tweets <- bind_rows(actual %>% 
+                           unnest_tokens(animal_for_detect, text),
+                         actual %>% 
+                           unnest_tokens(animal_for_detect, text, 
+                                         token = "ngrams", n = 2))
+
+tidy_tweets <- select(tidy_tweets, animal_for_detect, everything())
+head(tidy_tweets)
+
+```
+
+```{r animals, echo=TRUE, eval=TRUE}
+
+# devtools::install_github("hrbrmstr/pluralize")
+
+library("pluralize")
+animals <- tibble::tibble(animal_for_detect = corpora("animals/common")$animals)
+
+animals <- mutate(animals, animal = animal_for_detect)
+
+animals <- mutate(animals, animal_for_detect = pluralize(animal_for_detect)) %>%
+  bind_rows(animals)
+
+head(animals)
+
+tidy_tweets <- inner_join(tidy_tweets, animals,
+                          by = "animal_for_detect") %>%
+  distinct(status_id, animal, .keep_all = TRUE)
+
+tidy_tweets <- select(tidy_tweets, animal_for_detect, animal, everything())
+
+head(tidy_tweets)
+
+animal_counts <- tidy_tweets %>% 
+  group_by(animal) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n))
+
+head(animal_counts)
+```
+
+```{r lookatspecificanimals}
+
+rabbit_tweets <- filter(tidy_tweets, animal == "rabbit")$status_id
+filter(actual, status_id %in% rabbit_tweets)$text
+
+turtle_tweets <- filter(tidy_tweets, animal == "turtle")$status_id
+filter(actual, status_id %in% turtle_tweets)$text %>% head()
+```
+
+```{r plots}
+
+library("ggplot2")
+library("viridis")
+animal_counts <- animal_counts %>%
+  mutate(animal = ifelse(n < 5, "others", animal)) %>%
+  group_by(animal) %>%
+  summarize(n = sum(n)) %>%
+  arrange(desc(n))
+animal_counts <- mutate(animal_counts,
+                        animal = factor(animal,
+                                        ordered = TRUE,
+                                        levels = unique(animal)))
+
+ggplot(animal_counts) +
+  geom_bar(aes(animal, n, fill = animal), stat = "identity", show.legend = F)+
+  scale_fill_viridis(discrete = TRUE, option = "magma")+coord_flip()+
+    theme(axis.text.x = element_text(angle = 0,
+                            hjust = 1,
+                            vjust = 1),
+          text = element_text(size=15))
+```
+
